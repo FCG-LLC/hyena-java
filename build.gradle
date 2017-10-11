@@ -1,0 +1,54 @@
+group 'co.llective.hyena'
+version '0.1-SNAPSHOT'
+
+buildscript {
+    ext.kotlin_version = '1.1.51'
+
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+apply plugin: 'kotlin'
+apply plugin: 'application'
+
+mainClassName = "co.llective.hyena.repl.MainKt"
+
+repositories {
+    mavenCentral()
+    maven {
+        url "http://clojars.org/repo/"
+    }
+}
+
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
+    compile group: 'org.python', name: 'jython-standalone', version: '2.5.2'
+    compile group: 'com.google.guava', name: 'guava', version: '23.1-jre'
+    compile group: 'io.airlift', name: 'log', version: '0.150'
+    compile group: 'io.airlift', name: 'configuration', version: '0.150'
+    compile group: 'io.airlift', name: 'bootstrap', version: '0.150'
+    compile group: 'jnanomsg', name: 'jnanomsg', version: '0.4.3'
+    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.6'
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+task fatJar(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'Gradle Jar File Example',
+                'Implementation-Version': version,
+                'Main-Class': 'co.llective.hyena.repl.MainKt'
+    }
+    baseName = project.name + '-all'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
