@@ -32,10 +32,26 @@ class HyenaApi {
         val reply = MessageDecoder.decode(replyBuf);
 
         return when (reply) {
-            is ListColumnsReply -> reply.columns.map { c -> c.name }
+            is ListColumnsReply -> reply.columns.map { c -> "${c.name}: ${c.dataType}" }
             else ->  {
                 log.error("Got a wrong reply: " + reply)
                 emptyList()
+            }
+        }
+    }
+
+    @Throws(IOException::class)
+    fun addColumn(id: Int, column: Column) : Boolean {
+        val message = MessageBuilder.buildAddColumnMessage(id, column)
+        s.send(message)
+        val replyBuf = s.recv()
+        val reply = MessageDecoder.decode(replyBuf);
+
+        return when (reply) {
+            is AddColumnReply -> true
+            else -> {
+                log.error("Got a wrong reply: " + reply)
+                false
             }
         }
     }

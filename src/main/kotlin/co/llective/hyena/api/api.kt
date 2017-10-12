@@ -1,7 +1,9 @@
 package co.llective.hyena.api
 
 import co.llective.hyena.api.HyenaApi.Companion.UTF8_CHARSET
+import com.sun.javaws.exceptions.InvalidArgumentException
 import org.apache.commons.lang3.StringUtils
+import java.nio.ByteBuffer
 import java.util.*
 
 enum class ApiRequest {
@@ -24,11 +26,32 @@ enum class ScanComparison {
 }
 
 enum class BlockType {
-    Int64Dense,
-    Int64Sparse,
-    Int32Sparse,
-    Int16Sparse,
-    Int8Sparse,
+    I8Dense,
+    I16Dense,
+    I32Dense,
+    I64Dense,
+    // I128Dense,
+
+    // Dense, Unsigned
+    U8Dense,
+    U16Dense,
+    U32Dense,
+    U64Dense,
+    // U128Dense,
+
+    // Sparse, Signed
+    I8Sparse,
+    I16Sparse,
+    I32Sparse,
+    I64Sparse,
+    // I128Sparse,
+
+    // Sparse, Unsigned
+    U8Sparse,
+    U16Sparse,
+    U32Sparse,
+    U64Sparse,
+    // U128Sparse,
     String
 }
 
@@ -65,13 +88,25 @@ class Catalog(val columns: List<Column> = arrayListOf(),
     }
 }
 
-class DenseBlock<T>(val data: ArrayList<T>) : List<T> by data {
-    constructor(size: Int): this(data = ArrayList(size)) { }
+interface Block {
+    val count: Int
 }
 
-class SparseBlock<T>(val offsetData: MutableList<Int>, val valueData: MutableList<T>)
+class DenseBlock<T>(val data: ArrayList<T>) : Block {
+    override val count = data.size
+    constructor(size: Int): this(data = ArrayList<T>(size)) { }
+
+    @Suppress("UNCHECKED_CAST")
+    fun add(value: Any) {
+        data.add(value as T)
+    }
+}
+
+class SparseBlock<T>(val offsetData: MutableList<Int>, val valueData: MutableList<T>) : Block
 {
     private var currentPosition = 0
+
+    override val count = offsetData.size
 
     constructor(size: Int): this(offsetData = ArrayList(size), valueData = ArrayList(size)) {}
 
@@ -85,12 +120,20 @@ class SparseBlock<T>(val offsetData: MutableList<Int>, val valueData: MutableLis
         } else
             Optional.empty()
     }
+
+    @Suppress("UNCHECKED_CAST")
+    fun add(offset: Int, value: Any) {
+        offsetData.add(offset)
+        valueData.add(value as T)
+    }
 }
 
 class StringBlock(val offsetData: MutableList<Int>,
-                  val valueStartPositions: MutableList<Long>)
+                  val valueStartPositions: MutableList<Long>) : Block
 {
     var bytes: ByteArray? = null
+
+    override val count = offsetData.size
 
     private var currentPosition = 0
 
@@ -116,5 +159,10 @@ class StringBlock(val offsetData: MutableList<Int>,
         }
 
         return Optional.empty()
+    }
+
+    fun add(offset: Int, value: Long) {
+        offsetData.add(offset)
+        valueStartPositions.add(value)
     }
 }

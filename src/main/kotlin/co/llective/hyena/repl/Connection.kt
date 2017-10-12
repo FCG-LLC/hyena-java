@@ -1,5 +1,7 @@
 package co.llective.hyena.repl
 
+import co.llective.hyena.api.BlockType
+import co.llective.hyena.api.Column
 import co.llective.hyena.api.HyenaApi
 
 class Connection {
@@ -12,4 +14,7 @@ class Connection {
 
     fun listColumns() = hyena.listColumns()
 
+    fun addColumn(name: String, type: BlockType, id: Int) {
+        hyena.addColumn(id, Column(type, name))
+    }
 }

@@ -17,7 +17,7 @@ object MessageDecoder {
             ApiRequest.Insert -> TODO()
             ApiRequest.Scan -> TODO()
             ApiRequest.RefreshCatalog -> TODO()
-            ApiRequest.AddColumn -> TODO()
+            ApiRequest.AddColumn -> AddColumnReply()
             ApiRequest.Flush -> TODO()
             ApiRequest.DataCompaction -> TODO()
         }
@@ -34,8 +34,11 @@ object MessageDecoder {
     }
 
     @Throws(IOException::class)
-    internal fun decodeColumn(buf: ByteBuffer): Column
-        = Column(BlockType.values()[buf.int], decodeString(buf))
+    internal fun decodeColumn(buf: ByteBuffer): Column {
+        val mem = buf.int // Consume wrapper type Memory
+        val type = buf.int
+        return Column(BlockType.values()[type], decodeString(buf))
+    }
 
     @Throws(IOException::class)
     internal fun decodeString(buf: ByteBuffer): String {

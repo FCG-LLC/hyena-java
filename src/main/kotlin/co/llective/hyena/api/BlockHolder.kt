@@ -1,28 +1,17 @@
 package co.llective.hyena.api
 
+import com.kenai.jaffl.struct.Struct
 import java.io.IOException
+import java.math.BigInteger
 import java.nio.ByteBuffer
+import java.util.*
 
 class BlockHolder {
     var type: BlockType? = null
-    var int64DenseBlock: DenseBlock<Long>? = null
-    var int64SparseBlock: SparseBlock<Long>? = null
-    var int32SparseBlock: SparseBlock<Int>? = null
-    var int16SparseBlock: SparseBlock<Short>? = null
-    var int8SparseBlock: SparseBlock<Byte>? = null
-    var stringBlock: StringBlock? = null
+    var block: Optional<Block> = Optional.empty()
 
     override fun toString(): String {
-        var count = 0
-        when (type) {
-            BlockType.Int8Sparse -> count = int8SparseBlock!!.offsetData.size
-            BlockType.Int16Sparse -> count = int16SparseBlock!!.offsetData.size
-            BlockType.Int32Sparse -> count = int32SparseBlock!!.offsetData.size
-            BlockType.Int64Sparse -> count = int64SparseBlock!!.offsetData.size
-            BlockType.Int64Dense -> count = int64DenseBlock!!.data.size
-            BlockType.String -> count = stringBlock!!.offsetData.size
-        }
-
+        val count = if (block.isPresent) { block.get().count } else 0
         return String.format("%s with %d elements", type!!.name, count)
     }
 
@@ -35,44 +24,53 @@ class BlockHolder {
             val recordsCount = buf.long.toInt()
 
             when (holder.type) {
-                BlockType.Int8Sparse -> holder.int8SparseBlock = SparseBlock(recordsCount)
-                BlockType.Int16Sparse -> holder.int16SparseBlock = SparseBlock(recordsCount)
-                BlockType.Int32Sparse -> holder.int32SparseBlock = SparseBlock(recordsCount)
-                BlockType.Int64Sparse -> holder.int64SparseBlock = SparseBlock(recordsCount)
-                BlockType.Int64Dense -> holder.int64DenseBlock = DenseBlock(recordsCount)
-                BlockType.String -> holder.stringBlock = StringBlock(recordsCount)
+                BlockType.String -> holder.block = Optional.of(StringBlock(recordsCount))
+                BlockType.I8Dense  -> holder.block = Optional.of(DenseBlock<Byte>(recordsCount))
+                BlockType.I16Dense -> holder.block = Optional.of(DenseBlock<Short>(recordsCount))
+                BlockType.I32Dense -> holder.block = Optional.of(DenseBlock<Int>(recordsCount))
+                BlockType.I64Dense -> holder.block = Optional.of(DenseBlock<Long>(recordsCount))
+                BlockType.U8Dense  -> holder.block = Optional.of(DenseBlock<Short>(recordsCount))
+                BlockType.U16Dense -> holder.block = Optional.of(DenseBlock<Int>(recordsCount))
+                BlockType.U32Dense -> holder.block = Optional.of(DenseBlock<Long>(recordsCount))
+                BlockType.U64Dense -> holder.block = Optional.of(DenseBlock<BigInteger>(recordsCount))
+                BlockType.I8Sparse  -> holder.block = Optional.of(SparseBlock<Byte>(recordsCount))
+                BlockType.I16Sparse -> holder.block = Optional.of(SparseBlock<Short>(recordsCount))
+                BlockType.I32Sparse -> holder.block = Optional.of(SparseBlock<Int>(recordsCount))
+                BlockType.I64Sparse -> holder.block = Optional.of(SparseBlock<Long>(recordsCount))
+                BlockType.U8Sparse  -> holder.block = Optional.of(SparseBlock<Short>(recordsCount))
+                BlockType.U16Sparse -> holder.block = Optional.of(SparseBlock<Int>(recordsCount))
+                BlockType.U32Sparse -> holder.block = Optional.of(SparseBlock<Long>(recordsCount))
+                BlockType.U64Sparse -> holder.block = Optional.of(SparseBlock<BigInteger>(recordsCount))
             }
 
             for (i in 0 until recordsCount) {
                 when (holder.type) {
-                    BlockType.Int8Sparse -> {
-                        holder.int8SparseBlock!!.offsetData.add(buf.int)
-                        holder.int8SparseBlock!!.valueData.add(buf.get())
-                    }
-                    BlockType.Int16Sparse -> {
-                        holder.int16SparseBlock!!.offsetData.add(buf.int)
-                        holder.int16SparseBlock!!.valueData.add(buf.short)
-                    }
-                    BlockType.Int32Sparse -> {
-                        holder.int32SparseBlock!!.offsetData.add(buf.int)
-                        holder.int32SparseBlock!!.valueData.add(buf.int)
-                    }
-                    BlockType.Int64Sparse -> {
-                        holder.int64SparseBlock!!.offsetData.add(buf.int)
-                        holder.int64SparseBlock!!.valueData.add(buf.long)
-                    }
-                    BlockType.Int64Dense -> holder.int64DenseBlock!!.data.add(buf.long)
-                    BlockType.String -> {
-                        holder.stringBlock!!.offsetData.add(buf.int)
-                        holder.stringBlock!!.valueStartPositions.add(buf.long)
-                    }
+                    BlockType.String -> (holder.block.get() as StringBlock).add(buf.int, buf.long)
+                    BlockType.I8Dense -> (holder.block.get() as DenseBlock<*>).add(buf.get())
+                    BlockType.I16Dense -> (holder.block.get() as DenseBlock<*>).add(buf.short)
+                    BlockType.I32Dense -> (holder.block.get() as DenseBlock<*>).add(buf.int)
+                    BlockType.I64Dense -> (holder.block.get() as DenseBlock<*>).add(buf.long)
+                    BlockType.U8Dense -> TODO()
+                    BlockType.U16Dense -> TODO()
+                    BlockType.U32Dense -> TODO()
+                    BlockType.U64Dense -> TODO()
+                    BlockType.I8Sparse -> (holder.block.get() as SparseBlock<*>).add(buf.int, buf.get())
+                    BlockType.I16Sparse -> (holder.block.get() as SparseBlock<*>).add(buf.int, buf.short)
+                    BlockType.I32Sparse -> (holder.block.get() as SparseBlock<*>).add(buf.int, buf.int)
+                    BlockType.I64Sparse -> (holder.block.get() as SparseBlock<*>).add(buf.int, buf.long)
+                    BlockType.U8Sparse -> TODO()
+                    BlockType.U16Sparse -> TODO()
+                    BlockType.U32Sparse -> TODO()
+                    BlockType.U64Sparse -> TODO()
+                    null -> TODO()
                 }
             }
 
             if (holder.type == BlockType.String) {
                 val len = buf.long.toInt()
-                holder.stringBlock!!.bytes = ByteArray(len)
-                buf.get(holder.stringBlock!!.bytes!!, 0, len)
+                val block = holder.block.get() as StringBlock
+                block.bytes = ByteArray(len)
+                buf.get(block.bytes, 0, len)
             }
 
             return holder
