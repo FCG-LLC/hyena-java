@@ -9,7 +9,7 @@ import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.Charset
-import java.util.ArrayList
+import java.util.*
 
 class HyenaApi {
     private val s = ReqSocket()
@@ -41,17 +41,23 @@ class HyenaApi {
     }
 
     @Throws(IOException::class)
-    fun addColumn(id: Int, column: Column) : Boolean {
-        val message = MessageBuilder.buildAddColumnMessage(id, column)
+    fun addColumn(column: Column) : Optional<Int> {
+        val message = MessageBuilder.buildAddColumnMessage(column)
         s.send(message)
         val replyBuf = s.recv()
         val reply = MessageDecoder.decode(replyBuf);
 
         return when (reply) {
-            is AddColumnReply -> true
+            is AddColumnReply -> when (reply.result) {
+                is Left -> Optional.of(reply.result.value)
+                is Right -> {
+                    log.error("Could not add column: ${reply.result.value}");
+                    Optional.empty()
+                }
+            }
             else -> {
                 log.error("Got a wrong reply: " + reply)
-                false
+                Optional.empty()
             }
         }
     }
@@ -237,7 +243,7 @@ class HyenaApi {
     companion object {
         private val log = Logger.get(HyenaApi::class.java)
 
-        public val UTF8_CHARSET = Charset.forName("UTF-8")
+        val UTF8_CHARSET = Charset.forName("UTF-8")
     }
 
     class HyenaOpMetadata {

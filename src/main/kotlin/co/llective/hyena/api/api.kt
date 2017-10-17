@@ -1,9 +1,7 @@
 package co.llective.hyena.api
 
 import co.llective.hyena.api.HyenaApi.Companion.UTF8_CHARSET
-import com.sun.javaws.exceptions.InvalidArgumentException
 import org.apache.commons.lang3.StringUtils
-import java.nio.ByteBuffer
 import java.util.*
 
 enum class ApiRequest {

@@ -3,18 +3,25 @@ package co.llective.hyena.repl
 import co.llective.hyena.api.BlockType
 import co.llective.hyena.api.Column
 import co.llective.hyena.api.HyenaApi
+import io.airlift.log.Logger
 
-class Connection {
-    val hyena: HyenaApi
+@Suppress("unused")
+class Connection(address: String) {
+    val hyena: HyenaApi = HyenaApi()
+    private val log = Logger.get(HyenaApi::class.java)
 
-    constructor(address: String) {
-        hyena = HyenaApi()
-        hyena.connect(address)
+    fun listColumns() {
+        log.info(hyena.listColumns().joinToString(", "))
     }
 
-    fun listColumns() = hyena.listColumns()
+    fun addColumn(name: String, type: BlockType)  {
+        val id = hyena.addColumn(Column(type, name))
+        if (id.isPresent) {
+            log.info("Column added with id ${id.get()}")
+        }
+    }
 
-    fun addColumn(name: String, type: BlockType, id: Int) {
-        hyena.addColumn(id, Column(type, name))
+    init {
+        hyena.connect(address)
     }
 }

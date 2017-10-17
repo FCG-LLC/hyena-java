@@ -16,7 +16,7 @@ object MessageBuilder {
         return baos.toByteArray()
     }
 
-    fun buildAddColumnMessage(id: Int, column: Column): ByteArray {
+    fun buildAddColumnMessage(column: Column): ByteArray {
         val baos = ByteArrayOutputStream()
         val dos = LittleEndianDataOutputStream(baos)
         dos.writeInt(ApiRequest.AddColumn.ordinal)

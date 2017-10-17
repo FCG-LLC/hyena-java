@@ -17,14 +17,35 @@ object MessageDecoder {
             ApiRequest.Insert -> TODO()
             ApiRequest.Scan -> TODO()
             ApiRequest.RefreshCatalog -> TODO()
-            ApiRequest.AddColumn -> AddColumnReply()
+            ApiRequest.AddColumn -> AddColumnReply(decodeAddColumnReply(buf))
             ApiRequest.Flush -> TODO()
             ApiRequest.DataCompaction -> TODO()
         }
     }
 
+    private fun decodeAddColumnReply(buf: ByteBuffer): Either<Int, ApiError> {
+        val ok = buf.int
+        if (ok == 0) {
+            return Left(buf.long.toInt())
+        } else {
+            return Right(decodeApiError(buf))
+        }
+    }
+
+    private fun decodeApiError(buf: ByteBuffer): ApiError {
+        val errorType = ApiErrorType.values()[buf.int]
+        return when (errorType.type) {
+            ApiErrorType.ExtraType.Long ->
+                ApiError(errorType, Optional.of(buf.long))
+            ApiErrorType.ExtraType.String ->
+                ApiError(errorType, Optional.of(decodeString(buf)))
+            ApiErrorType.ExtraType.None ->
+                ApiError(errorType, Optional.empty())
+        }
+    }
+
     private fun decodeListColumn(buf: ByteBuffer) : ListColumnsReply {
-        val columnCount = buf.int
+        val columnCount = buf.long.toInt()
         val columns = ArrayList<Column>()
         for (i in 0 until columnCount) {
             columns.add(decodeColumn(buf))
@@ -35,7 +56,6 @@ object MessageDecoder {
 
     @Throws(IOException::class)
     internal fun decodeColumn(buf: ByteBuffer): Column {
-        val mem = buf.int // Consume wrapper type Memory
         val type = buf.int
         return Column(BlockType.values()[type], decodeString(buf))
     }

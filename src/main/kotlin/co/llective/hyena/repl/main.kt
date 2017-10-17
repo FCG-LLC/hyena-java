@@ -1,8 +1,10 @@
 package co.llective.hyena.repl
 
+import co.llective.hyena.api.ApiError
 import co.llective.hyena.api.BlockType
 import org.python.core.PyDictionary
 import org.python.util.JLineConsole
+import java.util.*
 
 
 fun main(args : Array<String>) {
