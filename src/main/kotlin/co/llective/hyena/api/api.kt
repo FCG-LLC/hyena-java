@@ -65,8 +65,8 @@ data class ScanFilter(val column: Int, val op: ScanComparison = ScanComparison.E
     override fun toString(): String = String.format("%d %s %d/%s", column, op.name, value, strValue)
 }
 
-data class Column(val dataType: BlockType, val name: String) {
-    override fun toString(): String = String.format("%s %s", name, dataType.name)
+data class Column(val dataType: BlockType, val id: Int, val name: String) {
+    override fun toString(): String = "$name/$id ${dataType.name}"
 }
 
 data class PartitionInfo(val minTs: Long, val maxTs: Long, val id: Long, val location: String) {

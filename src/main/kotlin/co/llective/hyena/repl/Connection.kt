@@ -11,11 +11,12 @@ class Connection(address: String) {
     private val log = Logger.get(HyenaApi::class.java)
 
     fun listColumns() {
-        log.info(hyena.listColumns().joinToString(", "))
+        val columns = hyena.listColumns()
+        log.info(columns.joinToString(", "))
     }
 
     fun addColumn(name: String, type: BlockType)  {
-        val id = hyena.addColumn(Column(type, name))
+        val id = hyena.addColumn(Column(type, -1, name))
         if (id.isPresent) {
             log.info("Column added with id ${id.get()}")
         }

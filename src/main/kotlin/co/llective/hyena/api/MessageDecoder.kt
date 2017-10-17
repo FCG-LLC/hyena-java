@@ -57,7 +57,8 @@ object MessageDecoder {
     @Throws(IOException::class)
     internal fun decodeColumn(buf: ByteBuffer): Column {
         val type = buf.int
-        return Column(BlockType.values()[type], decodeString(buf))
+        val id = buf.long.toInt()
+        return Column(BlockType.values()[type], id, decodeString(buf))
     }
 
     @Throws(IOException::class)

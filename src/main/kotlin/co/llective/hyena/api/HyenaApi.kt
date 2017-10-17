@@ -25,14 +25,14 @@ class HyenaApi {
     }
 
     @Throws(IOException::class)
-    fun listColumns() : List<String> {
+    fun listColumns() : List<Column> {
         val message = MessageBuilder.buildListColumnsMessage()
         s.send(message)
         val replyBuf = s.recv()
         val reply = MessageDecoder.decode(replyBuf);
 
         return when (reply) {
-            is ListColumnsReply -> reply.columns.map { c -> "${c.name}: ${c.dataType}" }
+            is ListColumnsReply -> reply.columns
             else ->  {
                 log.error("Got a wrong reply: " + reply)
                 emptyList()
