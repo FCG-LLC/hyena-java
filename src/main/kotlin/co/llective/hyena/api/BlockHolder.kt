@@ -1,6 +1,5 @@
 package co.llective.hyena.api
 
-import com.kenai.jaffl.struct.Struct
 import java.io.IOException
 import java.math.BigInteger
 import java.nio.ByteBuffer
@@ -25,22 +24,22 @@ class BlockHolder {
 
             when (holder.type) {
                 BlockType.String -> holder.block = Optional.of(StringBlock(recordsCount))
-                BlockType.I8Dense  -> holder.block = Optional.of(DenseBlock<Byte>(recordsCount))
-                BlockType.I16Dense -> holder.block = Optional.of(DenseBlock<Short>(recordsCount))
-                BlockType.I32Dense -> holder.block = Optional.of(DenseBlock<Int>(recordsCount))
-                BlockType.I64Dense -> holder.block = Optional.of(DenseBlock<Long>(recordsCount))
-                BlockType.U8Dense  -> holder.block = Optional.of(DenseBlock<Short>(recordsCount))
-                BlockType.U16Dense -> holder.block = Optional.of(DenseBlock<Int>(recordsCount))
-                BlockType.U32Dense -> holder.block = Optional.of(DenseBlock<Long>(recordsCount))
-                BlockType.U64Dense -> holder.block = Optional.of(DenseBlock<BigInteger>(recordsCount))
-                BlockType.I8Sparse  -> holder.block = Optional.of(SparseBlock<Byte>(recordsCount))
-                BlockType.I16Sparse -> holder.block = Optional.of(SparseBlock<Short>(recordsCount))
-                BlockType.I32Sparse -> holder.block = Optional.of(SparseBlock<Int>(recordsCount))
-                BlockType.I64Sparse -> holder.block = Optional.of(SparseBlock<Long>(recordsCount))
-                BlockType.U8Sparse  -> holder.block = Optional.of(SparseBlock<Short>(recordsCount))
-                BlockType.U16Sparse -> holder.block = Optional.of(SparseBlock<Int>(recordsCount))
-                BlockType.U32Sparse -> holder.block = Optional.of(SparseBlock<Long>(recordsCount))
-                BlockType.U64Sparse -> holder.block = Optional.of(SparseBlock<BigInteger>(recordsCount))
+                BlockType.I8Dense  -> holder.block = Optional.of(DenseBlock<Byte>(holder.type!!, recordsCount))
+                BlockType.I16Dense -> holder.block = Optional.of(DenseBlock<Short>(holder.type!!, recordsCount))
+                BlockType.I32Dense -> holder.block = Optional.of(DenseBlock<Int>(holder.type!!, recordsCount))
+                BlockType.I64Dense -> holder.block = Optional.of(DenseBlock<Long>(holder.type!!, recordsCount))
+                BlockType.U8Dense  -> holder.block = Optional.of(DenseBlock<Short>(holder.type!!, recordsCount))
+                BlockType.U16Dense -> holder.block = Optional.of(DenseBlock<Int>(holder.type!!, recordsCount))
+                BlockType.U32Dense -> holder.block = Optional.of(DenseBlock<Long>(holder.type!!, recordsCount))
+                BlockType.U64Dense -> holder.block = Optional.of(DenseBlock<BigInteger>(holder.type!!, recordsCount))
+                BlockType.I8Sparse  -> holder.block = Optional.of(SparseBlock<Byte>(holder.type!!, recordsCount))
+                BlockType.I16Sparse -> holder.block = Optional.of(SparseBlock<Short>(holder.type!!, recordsCount))
+                BlockType.I32Sparse -> holder.block = Optional.of(SparseBlock<Int>(holder.type!!, recordsCount))
+                BlockType.I64Sparse -> holder.block = Optional.of(SparseBlock<Long>(holder.type!!, recordsCount))
+                BlockType.U8Sparse  -> holder.block = Optional.of(SparseBlock<Short>(holder.type!!, recordsCount))
+                BlockType.U16Sparse -> holder.block = Optional.of(SparseBlock<Int>(holder.type!!, recordsCount))
+                BlockType.U32Sparse -> holder.block = Optional.of(SparseBlock<Long>(holder.type!!, recordsCount))
+                BlockType.U64Sparse -> holder.block = Optional.of(SparseBlock<BigInteger>(holder.type!!, recordsCount))
             }
 
             for (i in 0 until recordsCount) {

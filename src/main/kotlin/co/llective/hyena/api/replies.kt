@@ -20,5 +20,6 @@ enum class ApiErrorType(val type: ExtraType) {
 data class ApiError(val type: ApiErrorType, val extra: Optional<Any>) { }
 
 open class Reply {}
-class ListColumnsReply(val columns: List<Column>) : Reply() { }
-class AddColumnReply(val result: Either<Int, ApiError>) : Reply() {}
+data class ListColumnsReply(val columns: List<Column>) : Reply() { }
+data class AddColumnReply(val result: Either<Int, ApiError>) : Reply() {}
+data class InsertReply(val result: Either<Int, ApiError>) : Reply() {}

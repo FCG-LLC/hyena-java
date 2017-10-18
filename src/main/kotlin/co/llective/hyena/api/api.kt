@@ -2,6 +2,7 @@ package co.llective.hyena.api
 
 import co.llective.hyena.api.HyenaApi.Companion.UTF8_CHARSET
 import org.apache.commons.lang3.StringUtils
+import java.io.DataOutput
 import java.util.*
 
 enum class ApiRequest {
@@ -86,27 +87,61 @@ class Catalog(val columns: List<Column> = arrayListOf(),
     }
 }
 
-interface Block {
-    val count: Int
+data class ColumnData(val columnIndex: Int, val block: Block) {
+    override fun toString(): String = "ColumnData[id: $columnIndex, data: $block]"
+
 }
 
-class DenseBlock<T>(val data: ArrayList<T>) : Block {
-    override val count = data.size
-    constructor(size: Int): this(data = ArrayList<T>(size)) { }
+abstract class Block(val type: BlockType, val count: Int) {
+
+    abstract fun write(dos: DataOutput)
+
+    protected fun <T> write(dos: DataOutput, item: T) {
+        when (item) {
+            is Byte  -> dos.writeByte(item.toInt())
+            is Short -> dos.writeShort(item.toInt())
+            is Int   -> dos.writeInt(item)
+            is Long  -> dos.writeLong(item)
+        }
+    }
+}
+
+class DenseBlock<T> : Block {
+    val data: ArrayList<T>
+
+    private constructor(type: BlockType, data: ArrayList<T>) : super(type, data.size) { this.data = data}
+    constructor(type: BlockType, size: Int): this(type = type, data = ArrayList<T>(size)) { }
 
     @Suppress("UNCHECKED_CAST")
     fun add(value: Any) {
         data.add(value as T)
     }
+
+    override fun write(dos: DataOutput) {
+        dos.writeLong(data.size.toLong())
+        for (item in data) {
+            write(dos, item)
+        }
+    }
+
+    override fun toString(): String = "$data"
 }
 
-class SparseBlock<T>(val offsetData: MutableList<Int>, val valueData: MutableList<T>) : Block
+class SparseBlock<T> : Block
 {
     private var currentPosition = 0
+    val offsetData: MutableList<Int>
+    val valueData: MutableList<T>
 
-    override val count = offsetData.size
+    private constructor(type: BlockType, offsetData: MutableList<Int>, valueData: MutableList<T>)
+        : super(type, offsetData.size)
+    {
+        this.offsetData = offsetData
+        this.valueData = valueData
+    }
 
-    constructor(size: Int): this(offsetData = ArrayList(size), valueData = ArrayList(size)) {}
+    constructor(type: BlockType, size: Int)
+            : this(type = type, offsetData = ArrayList(size), valueData = ArrayList(size)) {}
 
     fun getMaybe(offset: Int): Optional<T> {
         while (currentPosition < offsetData.size && offsetData[currentPosition] < offset) {
@@ -124,18 +159,39 @@ class SparseBlock<T>(val offsetData: MutableList<Int>, val valueData: MutableLis
         offsetData.add(offset)
         valueData.add(value as T)
     }
+
+    override fun write(dos: DataOutput) {
+        dos.writeLong(valueData.size.toLong())
+        for (item in valueData) {
+            write(dos, item)
+        }
+
+        dos.writeLong(offsetData.size.toLong())
+        for (item in offsetData) {
+            write(dos, item)
+        }
+    }
 }
 
-class StringBlock(val offsetData: MutableList<Int>,
-                  val valueStartPositions: MutableList<Long>) : Block
+class StringBlock : Block
 {
-    var bytes: ByteArray? = null
+    override fun write(dos: DataOutput) {
+        TODO("not implemented") //Will be implemented when Hyena handles it
+    }
 
-    override val count = offsetData.size
+    var bytes: ByteArray? = null
+    val offsetData: MutableList<Int>
+    val valueStartPositions: MutableList<Long>
 
     private var currentPosition = 0
 
-    constructor(size: Int): this(offsetData = ArrayList<Int>(size), valueStartPositions = ArrayList<Long>(size)) {}
+    private constructor(offsetData: MutableList<Int>, valueStartPositions: MutableList<Long>)
+        : super(BlockType.String, offsetData.size) {
+        this.offsetData = offsetData
+        this.valueStartPositions = valueStartPositions
+    }
+    constructor(size: Int)
+            : this(offsetData = ArrayList<Int>(size), valueStartPositions = ArrayList<Long>(size)) {}
 
     fun getMaybe(offset: Int): Optional<String> {
         while (currentPosition < offsetData.size && offsetData[currentPosition] < offset) {

@@ -14,16 +14,16 @@ object MessageDecoder {
     fun decode(request: ApiRequest, buf: ByteBuffer) : Reply {
         return when(request) {
             ApiRequest.ListColumns -> decodeListColumn(buf)
-            ApiRequest.Insert -> TODO()
+            ApiRequest.Insert -> InsertReply(decodeEither(buf))
             ApiRequest.Scan -> TODO()
             ApiRequest.RefreshCatalog -> TODO()
-            ApiRequest.AddColumn -> AddColumnReply(decodeAddColumnReply(buf))
+            ApiRequest.AddColumn -> AddColumnReply(decodeEither(buf))
             ApiRequest.Flush -> TODO()
             ApiRequest.DataCompaction -> TODO()
         }
     }
 
-    private fun decodeAddColumnReply(buf: ByteBuffer): Either<Int, ApiError> {
+    private fun decodeEither(buf: ByteBuffer): Either<Int, ApiError> {
         val ok = buf.int
         if (ok == 0) {
             return Left(buf.long.toInt())

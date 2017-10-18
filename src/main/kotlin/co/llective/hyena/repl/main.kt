@@ -11,6 +11,7 @@ fun main(args : Array<String>) {
     val env = PyDictionary()
     env.put("Connection", Connection::class.java)
     env.put("BlockType", BlockType::class.java)
+    env.put("Helper", Helper::class.java)
 
     val console = JLineConsole(env)
     console.interact()

@@ -2,6 +2,7 @@ package co.llective.hyena.repl
 
 import co.llective.hyena.api.BlockType
 import co.llective.hyena.api.Column
+import co.llective.hyena.api.ColumnData
 import co.llective.hyena.api.HyenaApi
 import io.airlift.log.Logger
 
@@ -12,13 +13,20 @@ class Connection(address: String) {
 
     fun listColumns() {
         val columns = hyena.listColumns()
-        log.info(columns.joinToString(", "))
+        println(columns.joinToString(", "))
     }
 
     fun addColumn(name: String, type: BlockType)  {
         val id = hyena.addColumn(Column(type, -1, name))
         if (id.isPresent) {
-            log.info("Column added with id ${id.get()}")
+            println("Column added with id ${id.get()}")
+        }
+    }
+
+    fun insert(source: Int, timestamps: List<Long>, vararg columnData: ColumnData) {
+        val inserted = hyena.insert(source, timestamps, *columnData)
+        if (inserted.isPresent) {
+            println("Inserted ${inserted.get()}")
         }
     }
 
