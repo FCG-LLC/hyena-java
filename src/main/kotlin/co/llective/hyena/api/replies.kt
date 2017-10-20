@@ -23,3 +23,4 @@ open class Reply {}
 data class ListColumnsReply(val columns: List<Column>) : Reply() { }
 data class AddColumnReply(val result: Either<Int, ApiError>) : Reply() {}
 data class InsertReply(val result: Either<Int, ApiError>) : Reply() {}
+data class ScanReply(val result: ScanResult) : Reply() {}

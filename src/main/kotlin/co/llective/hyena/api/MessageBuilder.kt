@@ -31,13 +31,35 @@ object MessageBuilder {
         val baos = ByteArrayOutputStream()
         val dos = LittleEndianDataOutputStream(baos)
         dos.writeInt(ApiRequest.Insert.ordinal)
-        writeLongList(dos, timestamps);
-        dos.writeInt(source);
+        writeLongList(dos, timestamps)
+        dos.writeInt(source)
 
         dos.writeLong(columnData.size.toLong())
         for (column in columnData) {
             writeColumn(dos, column)
         }
+        baos.close()
+
+        return baos.toByteArray()
+    }
+
+    @Throws(IOException::class)
+    fun buildScanMessage(req: ScanRequest): ByteArray {
+        val baos = ByteArrayOutputStream()
+        val dos = LittleEndianDataOutputStream(baos)
+        dos.writeInt(ApiRequest.Scan.ordinal)
+
+        dos.writeLong(req.minTs)
+        dos.writeLong(req.maxTs)
+        dos.writeLong(req.partitionId)
+
+        writeIntList(dos, req.projection)
+
+        dos.writeLong(req.filters.size.toLong())
+        for (filter in req.filters) {
+            dos.write(encodeScanFilter(filter))
+        }
+
         baos.close()
 
         return baos.toByteArray()
@@ -57,9 +79,29 @@ object MessageBuilder {
         }
     }
 
+    private fun writeIntList(dos: DataOutput, list: List<Int>) {
+        dos.writeLong(list.size.toLong())
+        for (item in list) {
+            dos.writeInt(item)
+        }
+    }
+
     private fun writeString(stream: DataOutput, string: String) {
         val bytes = string.toByteArray(HyenaApi.UTF8_CHARSET)
         stream.writeLong(bytes.size.toLong())
         stream.write(bytes)
+    }
+
+    @Throws(IOException::class)
+    private fun encodeScanFilter(filter: ScanFilter): ByteArray {
+        val baos = ByteArrayOutputStream()
+        val dos = LittleEndianDataOutputStream(baos)
+
+        dos.writeInt(filter.column)
+        dos.writeInt(filter.op.ordinal)
+        dos.writeLong(filter.value)
+        writeString(dos, filter.strValue)
+
+        return baos.toByteArray()
     }
 }

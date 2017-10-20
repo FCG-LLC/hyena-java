@@ -1,12 +1,9 @@
 package co.llective.hyena.api
 
-import com.google.common.io.LittleEndianDataOutputStream
 import io.airlift.log.Logger
 import nanomsg.Nanomsg
 import nanomsg.reqrep.ReqSocket
-import java.io.ByteArrayOutputStream
 import java.io.IOException
-import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.Charset
 import java.util.*
@@ -98,31 +95,28 @@ class HyenaApi {
         s.close()
     }
 
-//    @Throws(IOException::class)
-//    fun scan(req: ScanRequest, metaOrNull: HyenaOpMetadata?): ScanResult {
-//        ensureConnected()
-//
-//        s.send(buildScanMessage(req))
-//        log.info("Sent scan request to partition " + req.partitionId)
-//        try {
-//            log.info("Waiting for scan response from partition " + req.partitionId)
-//            val buf = s.recv()
-//            log.info("Received scan response from partition " + req.partitionId)
-//            buf.order(ByteOrder.LITTLE_ENDIAN)
-//
-//            val result = ScanResult.decode(buf)
-//
-//            if (metaOrNull != null) {
-//                metaOrNull.bytes = buf.position()
-//            }
-//
-//            return result
-//        } catch (t: Throwable) {
-//            log.error("Nanomsg error: " + Nanomsg.getError())
-//            throw IOException("Nanomsg error: " + Nanomsg.getError(), t)
-//        }
-//
-//    }
+    @Throws(IOException::class)
+    fun scan(req: ScanRequest, metaOrNull: HyenaOpMetadata?): ScanResult {
+        ensureConnected()
+
+        s.send(MessageBuilder.buildScanMessage(req))
+        log.info("Sent scan request to partition " + req.partitionId)
+        try {
+            log.info("Waiting for scan response from partition " + req.partitionId)
+            val buf = s.recv()
+            log.info("Received scan response from partition " + req.partitionId)
+            buf.order(ByteOrder.LITTLE_ENDIAN)
+
+            val result = MessageDecoder.decodeScanReply(buf)
+
+            metaOrNull?.bytes = buf.position()
+
+            return result
+        } catch (t: Throwable) {
+            log.error("Nanomsg error: " + Nanomsg.getError())
+            throw IOException("Nanomsg error: " + Nanomsg.getError(), t)
+        }
+    }
 //
 //    @Throws(IOException::class)
 //    fun refreshCatalog(): Catalog {
@@ -142,59 +136,6 @@ class HyenaApi {
 //        dos.writeInt(ApiRequest.RefreshCatalog.ordinal)
 //        dos.writeLong(0L) // 0 bytes for payload
 //        baos.close()
-//
-//        return baos.toByteArray()
-//    }
-//
-//    @Throws(IOException::class)
-//    internal fun buildScanMessage(req: ScanRequest): ByteArray {
-//        val baos = ByteArrayOutputStream()
-//        val dos = LittleEndianDataOutputStream(baos)
-//        dos.writeInt(ApiRequest.Scan.ordinal)
-//
-//        val scanRequest = encodeScanRequest(req)
-//        baos.write(encodeByteArray(scanRequest))
-//
-//        baos.close()
-//
-//        return baos.toByteArray()
-//    }
-//
-//    @Throws(IOException::class)
-//    internal fun encodeScanRequest(req: ScanRequest): ByteArray {
-//        val baos = ByteArrayOutputStream()
-//        val dos = LittleEndianDataOutputStream(baos)
-//
-//        dos.writeLong(req.minTs)
-//        dos.writeLong(req.maxTs)
-//        dos.writeLong(req.partitionId)
-//
-//        dos.writeLong(req.projection.size.toLong())
-//        for (projectedColumn in req.projection) {
-//            dos.writeInt(projectedColumn)
-//        }
-//
-//        if (req.filters == null) {
-//            dos.writeLong(0)
-//        } else {
-//            dos.writeLong(req.filters.size.toLong())
-//            for (filter in req.filters) {
-//                dos.write(encodeScanFilter(filter))
-//            }
-//        }
-//
-//        return baos.toByteArray()
-//    }
-//
-//    @Throws(IOException::class)
-//    internal fun encodeScanFilter(filter: ScanFilter): ByteArray {
-//        val baos = ByteArrayOutputStream()
-//        val dos = LittleEndianDataOutputStream(baos)
-//
-//        dos.writeInt(filter.column)
-//        dos.writeInt(filter.op.ordinal)
-//        dos.writeLong(filter.value)
-//        dos.write(encodeStringArray(filter.strValue))
 //
 //        return baos.toByteArray()
 //    }
@@ -242,21 +183,6 @@ class HyenaApi {
 //        return String(bytes, UTF8_CHARSET)
 //    }
 //
-//    @Throws(IOException::class)
-//    internal fun encodeByteArray(values: ByteArray): ByteArray {
-//        val baos = ByteArrayOutputStream()
-//        val dos = LittleEndianDataOutputStream(baos)
-//        dos.writeLong(values.size.toLong())
-//        dos.write(values)
-//
-//        //        byte[] bytes = baos.toByteArray();
-//        //        System.out.println("Sending: "+bytes.length);
-//        //        for (byte b:bytes) {
-//        //            System.out.println(b);
-//        //        }
-//
-//        return baos.toByteArray()
-//    }
 
     protected fun finalize() {
         close()

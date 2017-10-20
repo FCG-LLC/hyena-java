@@ -54,16 +54,14 @@ enum class BlockType {
     String
 }
 
-class ScanRequest {
-    var minTs: Long = 0
-    var maxTs: Long = 0
-    var partitionId: Long = 0
-    var filters: List<ScanFilter> = arrayListOf()
-    var projection: List<Int> = arrayListOf()
-}
+data class ScanRequest(var minTs: Long = 0,
+                       var maxTs: Long = 0,
+                       var partitionId: Long = 0,
+                       var filters: List<ScanFilter> = arrayListOf(),
+                       var projection: List<Int> = arrayListOf()) {}
 
 data class ScanFilter(val column: Int, val op: ScanComparison = ScanComparison.Eq, val value: Long, val strValue: String) {
-    override fun toString(): String = String.format("%d %s %d/%s", column, op.name, value, strValue)
+    override fun toString(): String = "$column ${op.name} $value/$strValue"
 }
 
 data class Column(val dataType: BlockType, val id: Int, val name: String) {

@@ -22,42 +22,5 @@ class ScanResult(val rowCount: Int,
 
     companion object {
         private val log = Logger.get(ScanResult::class.java)
-
-        @Throws(IOException::class)
-        private fun decodeColumnTypes(buf: ByteBuffer): List<Pair<Int, BlockType>> {
-            val colCount = buf.long
-            val colTypes = ArrayList<Pair<Int, BlockType>>()
-
-            for (i in 0 until colCount) {
-                colTypes.add(Pair.of(buf.int, BlockType.values()[buf.int]))
-            }
-
-            return colTypes
-        }
-
-        @Throws(IOException::class)
-        private fun decodeBlocks(buf: ByteBuffer): List<BlockHolder> {
-            val count = buf.long
-            val blocks = ArrayList<BlockHolder>()
-            for (i in 0 until count) {
-                blocks.add(BlockHolder.decode(buf))
-            }
-            return blocks
-        }
-
-        @Throws(IOException::class)
-        fun decode(buf: ByteBuffer): ScanResult {
-            val rowCount = buf.int
-            val colCount = buf.int
-
-            log.info("Received ResultSet with %d rows", rowCount)
-
-            return ScanResult(
-                    rowCount,
-                    colCount,
-                    decodeColumnTypes(buf),
-                    decodeBlocks(buf)
-            )
-        }
     }
 }

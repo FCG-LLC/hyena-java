@@ -1,9 +1,6 @@
 package co.llective.hyena.repl
 
-import co.llective.hyena.api.BlockType
-import co.llective.hyena.api.Column
-import co.llective.hyena.api.ColumnData
-import co.llective.hyena.api.HyenaApi
+import co.llective.hyena.api.*
 import io.airlift.log.Logger
 
 @Suppress("unused")
@@ -28,6 +25,11 @@ class Connection(address: String) {
         if (inserted.isPresent) {
             println("Inserted ${inserted.get()}")
         }
+    }
+
+    fun scan(request: ScanRequest) {
+        val result = hyena.scan(request, null)
+        println("Hyena returned ${result.rowCount} rows")
     }
 
     init {
