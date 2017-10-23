@@ -117,72 +117,17 @@ class HyenaApi {
             throw IOException("Nanomsg error: " + Nanomsg.getError(), t)
         }
     }
-//
-//    @Throws(IOException::class)
-//    fun refreshCatalog(): Catalog {
-//        ensureConnected()
-//
-//        s.send(buildRefreshCatalogMessage())
-//
-//        val buf = s.recv()
-//        buf.order(ByteOrder.LITTLE_ENDIAN)
-//        return decodeRefreshCatalog(buf)
-//    }
-//
-//    @Throws(IOException::class)
-//    internal fun buildRefreshCatalogMessage(): ByteArray {
-//        val baos = ByteArrayOutputStream()
-//        val dos = LittleEndianDataOutputStream(baos)
-//        dos.writeInt(ApiRequest.RefreshCatalog.ordinal)
-//        dos.writeLong(0L) // 0 bytes for payload
-//        baos.close()
-//
-//        return baos.toByteArray()
-//    }
-//
-//    @Throws(IOException::class)
-//    internal fun decodeRefreshCatalog(buf: ByteBuffer): Catalog {
-//        val columnCount = buf.long
-//        val columns = ArrayList<Column>()
-//        for (i in 0 until columnCount) {
-//            columns.add(MessageDecoder.decodeColumn(buf))
-//        }
-//
-//        val partitionCount = buf.long
-//        val partitions = ArrayList<PartitionInfo>()
-//        for (i in 0 until partitionCount) {
-//            partitions.add(decodePartitionInfo(buf))
-//        }
-//
-//        return Catalog(columns, partitions)
-//    }
-//
-//    @Throws(IOException::class)
-//    internal fun decodePartitionInfo(buf: ByteBuffer): PartitionInfo {
-//        return PartitionInfo(buf.long, buf.long, buf.long, decodeStringArray(buf))
-//    }
-//
-//    @Throws(IOException::class)
-//    internal fun encodeStringArray(str: String): ByteArray {
-//        val baos = ByteArrayOutputStream()
-//        val dos = LittleEndianDataOutputStream(baos)
-//
-//        val strBytes = str.toByteArray(UTF8_CHARSET)
-//        dos.writeLong(strBytes.size.toLong())
-//        dos.write(strBytes)
-//
-//        return baos.toByteArray()
-//    }
-//
-//    @Throws(IOException::class)
-//    internal fun decodeStringArray(buf: ByteBuffer): String {
-//        val len = buf.long.toInt()
-//
-//        val bytes = ByteArray(len)
-//        buf.get(bytes, 0, len)
-//        return String(bytes, UTF8_CHARSET)
-//    }
-//
+
+    @Throws(IOException::class)
+    fun refreshCatalog(): Catalog {
+        ensureConnected()
+
+        s.send(MessageBuilder.buildRefreshCatalogMessage())
+
+        val buf = s.recv()
+        buf.order(ByteOrder.LITTLE_ENDIAN)
+        return MessageDecoder.decodeRefreshCatalog(buf)
+    }
 
     protected fun finalize() {
         close()

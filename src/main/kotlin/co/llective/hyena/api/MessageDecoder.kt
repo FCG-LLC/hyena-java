@@ -40,6 +40,33 @@ object MessageDecoder {
         )
     }
 
+    @Throws(IOException::class)
+    fun decodeRefreshCatalog(buf: ByteBuffer): Catalog {
+        val type = buf.int
+        // TODO: verify type
+        val columnCount = buf.long
+        val columns = ArrayList<Column>()
+        for (i in 0 until columnCount) {
+            columns.add(MessageDecoder.decodeColumn(buf))
+        }
+
+        val partitionCount = buf.long
+        val partitions = ArrayList<PartitionInfo>()
+        for (i in 0 until partitionCount) {
+            partitions.add(decodePartitionInfo(buf))
+        }
+
+        return Catalog(columns, partitions)
+    }
+
+    @Throws(IOException::class)
+    private fun decodePartitionInfo(buf: ByteBuffer): PartitionInfo {
+        val minTs = buf.long
+        val maxTes = buf.long
+        val uuidString = decodeString(buf)
+        return PartitionInfo(minTs, maxTes, UUID.fromString(uuidString), decodeString(buf))
+    }
+
     private fun decodeEither(buf: ByteBuffer): Either<Int, ApiError> {
         val ok = buf.int
         if (ok == 0) {
@@ -88,7 +115,7 @@ object MessageDecoder {
     }
 
     @Throws(IOException::class)
-    private fun decodeColumnTypes(buf: ByteBuffer): List<Pair<Int, BlockType>> {
+    private fun decodeColumnTypes(buf: ByteBuffer): ArrayList<Pair<Int, BlockType>> {
         val colCount = buf.long
         val colTypes = ArrayList<Pair<Int, BlockType>>()
 

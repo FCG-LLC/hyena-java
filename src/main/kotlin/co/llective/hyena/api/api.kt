@@ -68,8 +68,8 @@ data class Column(val dataType: BlockType, val id: Int, val name: String) {
     override fun toString(): String = "$name/$id ${dataType.name}"
 }
 
-data class PartitionInfo(val minTs: Long, val maxTs: Long, val id: Long, val location: String) {
-    override fun toString(): String = String.format("%d [%d-%d]", this.id, this.minTs, this.maxTs)
+data class PartitionInfo(val minTs: Long, val maxTs: Long, val id: UUID, val location: String) {
+    override fun toString(): String = "$id [$minTs-$maxTs]"
 }
 
 class Catalog(val columns: List<Column> = arrayListOf(),
@@ -77,10 +77,11 @@ class Catalog(val columns: List<Column> = arrayListOf(),
 {
     override fun toString(): String {
         val sb = StringBuilder()
-        sb.append("Columns: ")
+        sb.append("Columns: [")
         sb.append(StringUtils.join(columns, ", "))
-        sb.append("Partitions: ")
+        sb.append("], Partitions: [")
         sb.append(StringUtils.join(availablePartitions, ", "))
+        sb.append("]")
         return sb.toString()
     }
 }

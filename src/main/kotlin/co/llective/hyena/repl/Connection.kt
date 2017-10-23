@@ -32,6 +32,11 @@ class Connection(address: String) {
         println("Hyena returned ${result.rowCount} rows")
     }
 
+    fun getCatalog() {
+        val catalog = hyena.refreshCatalog()
+        println(catalog)
+    }
+
     init {
         hyena.connect(address)
     }

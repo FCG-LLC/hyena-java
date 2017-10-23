@@ -65,6 +65,17 @@ object MessageBuilder {
         return baos.toByteArray()
     }
 
+    @Throws(IOException::class)
+    internal fun buildRefreshCatalogMessage(): ByteArray {
+        val baos = ByteArrayOutputStream()
+        val dos = LittleEndianDataOutputStream(baos)
+        dos.writeInt(ApiRequest.RefreshCatalog.ordinal)
+        dos.writeLong(0L) // 0 bytes for payload
+        baos.close()
+
+        return baos.toByteArray()
+    }
+
     private fun writeColumn(dos: DataOutput, column: ColumnData) {
         dos.writeLong(1) // Each ColumnData will become a single-item BlockData in Rust
         dos.writeLong(column.columnIndex.toLong())

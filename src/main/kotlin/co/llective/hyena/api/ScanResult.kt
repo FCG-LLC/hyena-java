@@ -9,7 +9,7 @@ import java.util.ArrayList
 
 class ScanResult(val rowCount: Int,
                  val colCount: Int,
-                 val colTypes: List<Pair<Int, BlockType>> = arrayListOf(),
+                 val colTypes: ArrayList<Pair<Int, BlockType>> = arrayListOf(),
                  val blocks: List<BlockHolder> = arrayListOf())
 {
     override fun toString(): String {
