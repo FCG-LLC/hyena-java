@@ -163,18 +163,18 @@ object MessageDecoder {
                 BlockType.I16Dense -> (block as DenseBlock<*>).add(buf.short)
                 BlockType.I32Dense -> (block as DenseBlock<*>).add(buf.int)
                 BlockType.I64Dense -> (block as DenseBlock<*>).add(buf.long)
-                BlockType.U8Dense -> TODO()
-                BlockType.U16Dense -> TODO()
-                BlockType.U32Dense -> TODO()
-                BlockType.U64Dense -> TODO()
+                BlockType.U8Dense -> (block as DenseBlock<*>).add(buf.short)
+                BlockType.U16Dense -> (block as DenseBlock<*>).add(buf.int)
+                BlockType.U32Dense -> (block as DenseBlock<*>).add(buf.long)
+                BlockType.U64Dense -> (block as DenseBlock<*>).add(decodeBigInt(buf.long))
                 BlockType.I8Sparse -> (block as SparseBlock<*>).add(buf.int, buf.get())
                 BlockType.I16Sparse -> (block as SparseBlock<*>).add(buf.int, buf.short)
                 BlockType.I32Sparse -> (block as SparseBlock<*>).add(buf.int, buf.int)
                 BlockType.I64Sparse -> (block as SparseBlock<*>).add(buf.int, buf.long)
-                BlockType.U8Sparse -> TODO()
-                BlockType.U16Sparse -> TODO()
-                BlockType.U32Sparse -> TODO()
-                BlockType.U64Sparse -> TODO()
+                BlockType.U8Sparse -> (block as SparseBlock<*>).add(buf.int, buf.short)
+                BlockType.U16Sparse -> (block as SparseBlock<*>).add(buf.int, buf.int)
+                BlockType.U32Sparse -> (block as SparseBlock<*>).add(buf.int, buf.long)
+                BlockType.U64Sparse -> (block as SparseBlock<*>).add(buf.int, decodeBigInt(buf.long))
             }
         }
 
@@ -185,5 +185,15 @@ object MessageDecoder {
 //        }
 
         return BlockHolder(type, block)
+    }
+
+    private val TWO_COMPLEMENT: BigInteger = BigInteger.ONE.shiftLeft(64);
+
+    internal fun decodeBigInt(value: Long): BigInteger {
+        var bi = BigInteger.valueOf(value)
+        if (bi < BigInteger.ZERO) {
+            bi += TWO_COMPLEMENT
+        }
+        return bi
     }
 }

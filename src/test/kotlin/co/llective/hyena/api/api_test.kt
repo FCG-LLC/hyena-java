@@ -1,6 +1,8 @@
 package co.llective.hyena.api
 
+import com.google.common.io.LittleEndianDataOutputStream
 import com.natpryce.hamkrest.assertion.assert
+import com.natpryce.hamkrest.equalTo
 import com.natpryce.hamkrest.throws
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.times
@@ -9,8 +11,49 @@ import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
 import org.jetbrains.spek.api.dsl.on
+import java.io.ByteArrayOutputStream
 import java.io.DataOutput
+import java.io.DataOutputStream
 import java.lang.IllegalArgumentException
+import java.math.BigInteger
+import java.nio.ByteBuffer
+
+object BlockTest : Spek({
+    class TestBlock(type: BlockType) : Block(type, 0) {
+        override fun write(dos: DataOutput) { /* do noting */ }
+    }
+
+    describe("Write BigInteger") {
+        fun write(bi: BigInteger, type: BlockType): ByteArray {
+            val block = TestBlock(type)
+            val baos = ByteArrayOutputStream()
+            val dos = DataOutputStream(baos)
+            block.writeBigInteger(dos, bi)
+            baos.close()
+
+            return baos.toByteArray()
+        }
+
+        it("writes unsigned BigIntegers as signed Longs") {
+            var bi = BigInteger("18446744073709551615")
+            var buf = ByteBuffer.wrap(write(bi, BlockType.U64Dense))
+            assert.that(buf.long, equalTo(-1L))
+
+            bi = BigInteger("18446744073709551614")
+            buf = ByteBuffer.wrap(write(bi, BlockType.U64Dense))
+            assert.that(buf.long, equalTo(-2L))
+
+            bi = BigInteger("9223372036854775808")
+            buf = ByteBuffer.wrap(write(bi, BlockType.U64Dense))
+            assert.that(buf.long, equalTo(Long.MIN_VALUE))
+        }
+
+        it("throws for types other than I64*") {
+            val bi = BigInteger("1")
+            assert.that({write(bi, BlockType.U32Dense)}, throws<RuntimeException>())
+        }
+    }
+})
 
 object DenseBlockTest : Spek({
     describe("DenseBlock") {

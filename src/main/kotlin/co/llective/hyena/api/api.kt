@@ -4,6 +4,7 @@ import co.llective.hyena.api.HyenaApi.Companion.UTF8_CHARSET
 import org.apache.commons.lang3.StringUtils
 import java.io.DataOutput
 import java.lang.IllegalArgumentException
+import java.math.BigInteger
 import java.util.*
 
 enum class ApiRequest {
@@ -59,7 +60,7 @@ data class ScanRequest(var minTs: Long = 0,
                        var maxTs: Long = 0,
                        var partitionId: Long = 0,
                        var filters: List<ScanFilter> = arrayListOf(),
-                       var projection: List<Int> = arrayListOf()) {}
+                       var projection: List<Int> = arrayListOf())
 
 data class ScanFilter(
         val column: Int,
@@ -102,7 +103,7 @@ data class BlockHolder(val type: BlockType, val block: Block) {
     override fun toString(): String = "$type with ${block.count} elements"
 }
 
-class ReplyException(s: String) : Exception(s) {}
+class ReplyException(s: String) : Exception(s)
 
 abstract class Block(val type: BlockType, val count: Int) {
 
@@ -114,6 +115,19 @@ abstract class Block(val type: BlockType, val count: Int) {
             is Short -> dos.writeShort(item.toInt())
             is Int   -> dos.writeInt(item)
             is Long  -> dos.writeLong(item)
+            is BigInteger -> writeBigInteger(dos, item)
+        }
+    }
+
+    private val TWO_COMPLEMENT: BigInteger = BigInteger.ONE.shiftLeft(64);
+    private val MAX_LONG_BI: BigInteger = BigInteger.valueOf(Long.MAX_VALUE);
+
+    internal fun writeBigInteger(dos: DataOutput, item: BigInteger) {
+        if (type == BlockType.U64Dense || type == BlockType.U64Sparse) {
+            val bi = if (item <= MAX_LONG_BI) {item} else { item - TWO_COMPLEMENT }
+            dos.writeLong(bi.longValueExact())
+        } else {
+            throw RuntimeException("Cannot serialize BigInteger for types other then U64Dense and U64Sparse")
         }
     }
 }
@@ -258,12 +272,10 @@ class StringBlock : Block
 
         if (currentPosition < offsetData.size && offsetData[currentPosition] == offset) {
             val startPosition = valueStartPositions[currentPosition].toInt()
-            val endPosition: Int
-
-            if (currentPosition == offsetData.size - 1) {
-                endPosition = bytes!!.size
+            val endPosition = if (currentPosition == offsetData.size - 1) {
+                bytes!!.size
             } else {
-                endPosition = valueStartPositions[currentPosition + 1].toInt()
+                valueStartPositions[currentPosition + 1].toInt()
             }
 
             val strBytes = Arrays.copyOfRange(bytes!!, startPosition, endPosition)

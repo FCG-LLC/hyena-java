@@ -1,6 +1,7 @@
 package co.llective.hyena.repl
 
 import co.llective.hyena.api.*
+import java.math.BigInteger
 import java.util.Random
 import java.util.ArrayList
 
@@ -62,25 +63,23 @@ object Helper {
     }
 
     private fun createBlock(n: Int, type: BlockType) : Block {
-        // TODO("Change data types so that blocks can actually hold the data")
-        // ie. u8 -> Short, u16 -> Int, u32 -> Long, u64 -> BigInteger
         return when(type) {
             BlockType.I8Dense  -> DenseBlock<Byte>(type, n)
             BlockType.I16Dense -> DenseBlock<Short>(type, n)
             BlockType.I32Dense -> DenseBlock<Int>(type, n)
             BlockType.I64Dense -> DenseBlock<Long>(type, n)
-            BlockType.U8Dense  -> DenseBlock<Byte>(type, n)
-            BlockType.U16Dense -> DenseBlock<Short>(type, n)
-            BlockType.U32Dense -> DenseBlock<Int>(type, n)
-            BlockType.U64Dense -> DenseBlock<Long>(type, n)
+            BlockType.U8Dense  -> DenseBlock<Short>(type, n)
+            BlockType.U16Dense -> DenseBlock<Int>(type, n)
+            BlockType.U32Dense -> DenseBlock<Long>(type, n)
+            BlockType.U64Dense -> DenseBlock<BigInteger>(type, n)
             BlockType.I8Sparse  -> SparseBlock<Byte>(type, n)
             BlockType.I16Sparse -> SparseBlock<Short>(type, n)
             BlockType.I32Sparse -> SparseBlock<Int>(type, n)
             BlockType.I64Sparse -> SparseBlock<Long>(type, n)
-            BlockType.U8Sparse  -> SparseBlock<Byte>(type, n)
-            BlockType.U16Sparse -> SparseBlock<Short>(type, n)
-            BlockType.U32Sparse -> SparseBlock<Int>(type, n)
-            BlockType.U64Sparse -> SparseBlock<Long>(type, n)
+            BlockType.U8Sparse  -> SparseBlock<Short>(type, n)
+            BlockType.U16Sparse -> SparseBlock<Int>(type, n)
+            BlockType.U32Sparse -> SparseBlock<Long>(type, n)
+            BlockType.U64Sparse -> SparseBlock<BigInteger>(type, n)
             BlockType.String -> StringBlock(n)
         }
     }
