@@ -13,7 +13,7 @@ object MessageDecoder {
         return decode(requestType, buf)
     }
 
-    fun decode(request: ApiRequest, buf: ByteBuffer) : Reply {
+    private fun decode(request: ApiRequest, buf: ByteBuffer) : Reply {
         return when(request) {
             ApiRequest.ListColumns -> decodeListColumn(buf)
             ApiRequest.Insert -> InsertReply(decodeEither(buf))
@@ -26,7 +26,7 @@ object MessageDecoder {
     }
 
     @Throws(IOException::class)
-    fun decodeScanReply(buf: ByteBuffer): ScanResult {
+    private fun decodeScanReply(buf: ByteBuffer): ScanResult {
         val type = buf.int
         // TODO validate message type
         val rowCount = buf.int
@@ -38,7 +38,7 @@ object MessageDecoder {
     }
 
     @Throws(IOException::class)
-    fun decodeRefreshCatalog(buf: ByteBuffer): Catalog {
+    private fun decodeRefreshCatalog(buf: ByteBuffer): Catalog {
         val columnCount = buf.long
         val columns = ArrayList<Column>()
         for (i in 0 until columnCount) {
@@ -64,10 +64,10 @@ object MessageDecoder {
 
     private fun decodeEither(buf: ByteBuffer): Either<Int, ApiError> {
         val ok = buf.int
-        if (ok == 0) {
-            return Left(buf.long.toInt())
+        return if (ok == 0) {
+            Left(buf.long.toInt())
         } else {
-            return Right(decodeApiError(buf))
+            Right(decodeApiError(buf))
         }
     }
 
@@ -94,14 +94,14 @@ object MessageDecoder {
     }
 
     @Throws(IOException::class)
-    internal fun decodeColumn(buf: ByteBuffer): Column {
+    private fun decodeColumn(buf: ByteBuffer): Column {
         val type = buf.int
         val id = buf.long.toInt()
         return Column(BlockType.values()[type], id, decodeString(buf))
     }
 
     @Throws(IOException::class)
-    internal fun decodeString(buf: ByteBuffer): String {
+    private fun decodeString(buf: ByteBuffer): String {
         val len = buf.long.toInt()
 
         val bytes = ByteArray(len)
@@ -132,7 +132,7 @@ object MessageDecoder {
     }
 
     @Throws(IOException::class)
-    fun decodeBlockHolder(buf: ByteBuffer): BlockHolder {
+    private fun decodeBlockHolder(buf: ByteBuffer): BlockHolder {
         val recordsCount = buf.long.toInt()
         val type = BlockType.values()[buf.int]
 

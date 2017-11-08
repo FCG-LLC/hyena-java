@@ -6,7 +6,6 @@ import com.natpryce.hamkrest.throws
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
-import java.util.*
 
 object ScanFilterBuilderTest : Spek({
     describe("ScanFilterBuilder") {

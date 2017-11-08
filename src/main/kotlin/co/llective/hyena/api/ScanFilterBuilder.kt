@@ -3,10 +3,10 @@ package co.llective.hyena.api
 import java.util.*
 
 data class ScanFilterBuilder(
-        val filter: ScanFilter = ScanFilter.empty(),
-        val columnSet: Boolean = false,
-        val opSet: Boolean = false,
-        val filterValSet: Boolean = false
+        private val filter: ScanFilter = ScanFilter.empty(),
+        private val columnSet: Boolean = false,
+        private val opSet: Boolean = false,
+        private val filterValSet: Boolean = false
 ) {
     fun withColumn(column: Int): ScanFilterBuilder
         = this.copy(columnSet = true, filter = filter.copy(column = column))

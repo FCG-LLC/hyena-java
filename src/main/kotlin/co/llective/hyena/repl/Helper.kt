@@ -9,7 +9,7 @@ object Helper {
     @JvmStatic fun randomTimestamps(n: Int) : List<Long> {
         val list = ArrayList<Long>(n)
         val generator = Random()
-        (0..n-1).map { list.add(Math.abs(generator.nextLong())) }
+        (0 until n).map { list.add(Math.abs(generator.nextLong())) }
         list.sort()
 
         return list
@@ -18,7 +18,7 @@ object Helper {
     @JvmStatic fun randomDenseBlock(n: Int, type: BlockType) : Block {
         val block: DenseBlock<*> = createBlock(n, type) as DenseBlock<*>
         val generator = Random()
-        (0..n-1).forEach {
+        (0 until n).forEach {
             block.add(when (type) {
                 BlockType.I8Dense -> (generator.nextInt(256) - 128).toByte()
                 BlockType.I16Dense -> (generator.nextInt(65536) - 32768).toShort()
@@ -36,10 +36,11 @@ object Helper {
         return block
     }
 
-    @JvmStatic fun randomSparseBlock(n: Int, type: BlockType) : Block {
+    @JvmStatic
+    fun randomSparseBlock(n: Int, type: BlockType) : Block {
         val block: SparseBlock<*> = createBlock(n, type) as SparseBlock<*>
         val generator = Random()
-        val offsets = (0..n-1).map{ generator.nextInt(Int.MAX_VALUE) }
+        val offsets = (0 until n).map{ generator.nextInt(Int.MAX_VALUE) }
         offsets.sorted().forEach { offset ->
             block.add(
                     offset,
