@@ -6,11 +6,10 @@ import java.io.*
 object MessageBuilder {
 
     @Throws(IOException::class)
-    internal fun buildListColumnsMessage(): ByteArray {
+    fun buildListColumnsMessage(): ByteArray {
         val baos = ByteArrayOutputStream()
         val dos = LittleEndianDataOutputStream(baos)
         dos.writeInt(ApiRequest.ListColumns.ordinal)
-        dos.writeLong(0L) // 0 bytes for payload
         baos.close()
 
         return baos.toByteArray()
@@ -66,11 +65,10 @@ object MessageBuilder {
     }
 
     @Throws(IOException::class)
-    internal fun buildRefreshCatalogMessage(): ByteArray {
+    fun buildRefreshCatalogMessage(): ByteArray {
         val baos = ByteArrayOutputStream()
         val dos = LittleEndianDataOutputStream(baos)
         dos.writeInt(ApiRequest.RefreshCatalog.ordinal)
-        dos.writeLong(0L) // 0 bytes for payload
         baos.close()
 
         return baos.toByteArray()

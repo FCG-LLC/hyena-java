@@ -9,19 +9,28 @@ buildscript {
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "org.junit.platform:junit-platform-gradle-plugin:1.0.0"
     }
 }
 
 apply plugin: 'kotlin'
 apply plugin: 'application'
+apply plugin: 'org.junit.platform.gradle.plugin'
 
 mainClassName = "co.llective.hyena.repl.MainKt"
 
+junitPlatform {
+    filters {
+        engines {
+            include 'spek'
+        }
+    }
+}
+
 repositories {
     mavenCentral()
-    maven {
-        url "http://clojars.org/repo/"
-    }
+    maven { url "http://clojars.org/repo/" }
+    maven { url "http://dl.bintray.com/jetbrains/spek" }
 }
 
 dependencies {
@@ -33,6 +42,13 @@ dependencies {
     compile group: 'io.airlift', name: 'bootstrap', version: '0.150'
     compile group: 'jnanomsg', name: 'jnanomsg', version: '0.4.3'
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.6'
+
+    testCompile 'org.jetbrains.spek:spek-api:1.1.5'
+    testCompile group: 'com.natpryce', name: 'hamkrest', version: '1.4.2.2'
+    testCompile group: 'com.nhaarman', name: 'mockito-kotlin', version: '1.5.0'
+    testCompile group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: '1.1.51'
+    testRuntime 'org.jetbrains.spek:spek-junit-platform-engine:1.1.5'
+    testRuntime 'org.junit.platform:junit-platform-runner:1.0.1'
 }
 
 compileKotlin {
@@ -44,7 +60,7 @@ compileTestKotlin {
 
 task fatJar(type: Jar) {
     manifest {
-        attributes 'Implementation-Title': 'Gradle Jar File Example',
+        attributes 'Implementation-Title': 'Hyena API REPL',
                 'Implementation-Version': version,
                 'Main-Class': 'co.llective.hyena.repl.MainKt'
     }

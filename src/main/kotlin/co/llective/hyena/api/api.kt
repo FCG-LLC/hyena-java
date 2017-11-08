@@ -3,6 +3,7 @@ package co.llective.hyena.api
 import co.llective.hyena.api.HyenaApi.Companion.UTF8_CHARSET
 import org.apache.commons.lang3.StringUtils
 import java.io.DataOutput
+import java.lang.IllegalArgumentException
 import java.util.*
 
 enum class ApiRequest {
@@ -64,7 +65,7 @@ data class ScanFilter(val column: Int, val op: ScanComparison = ScanComparison.E
     override fun toString(): String = "$column ${op.name} $value/$strValue"
 }
 
-data class Column(val dataType: BlockType, val id: Int, val name: String) {
+open class Column(val dataType: BlockType, val id: Int, val name: String) {
     override fun toString(): String = "$name/$id ${dataType.name}"
 }
 
@@ -72,18 +73,12 @@ data class PartitionInfo(val minTs: Long, val maxTs: Long, val id: UUID, val loc
     override fun toString(): String = "$id [$minTs-$maxTs]"
 }
 
-class Catalog(val columns: List<Column> = arrayListOf(),
+open class Catalog(val columns: List<Column> = arrayListOf(),
               val availablePartitions: List<PartitionInfo> = arrayListOf())
 {
-    override fun toString(): String {
-        val sb = StringBuilder()
-        sb.append("Columns: [")
-        sb.append(StringUtils.join(columns, ", "))
-        sb.append("], Partitions: [")
-        sb.append(StringUtils.join(availablePartitions, ", "))
-        sb.append("]")
-        return sb.toString()
-    }
+    override fun toString(): String
+        = "Columns: [${StringUtils.join(columns, ", ")}], " +
+          "Partitions: [${StringUtils.join(availablePartitions, ", ")}]"
 }
 
 data class ColumnData(val columnIndex: Int, val block: Block) {
@@ -91,11 +86,17 @@ data class ColumnData(val columnIndex: Int, val block: Block) {
 
 }
 
+data class BlockHolder(val type: BlockType, val block: Block) {
+    override fun toString(): String = "$type with ${block.count} elements"
+}
+
+class ReplyException(s: String) : Exception(s) {}
+
 abstract class Block(val type: BlockType, val count: Int) {
 
     abstract fun write(dos: DataOutput)
 
-    protected fun <T> write(dos: DataOutput, item: T) {
+    fun <T> write(dos: DataOutput, item: T) {
         when (item) {
             is Byte  -> dos.writeByte(item.toInt())
             is Short -> dos.writeShort(item.toInt())
@@ -105,15 +106,36 @@ abstract class Block(val type: BlockType, val count: Int) {
     }
 }
 
-class DenseBlock<T> : Block {
+open class DenseBlock<T> : Block {
     val data: ArrayList<T>
 
     private constructor(type: BlockType, data: ArrayList<T>) : super(type, data.size) { this.data = data}
-    constructor(type: BlockType, size: Int): this(type = type, data = ArrayList<T>(size)) { }
+    constructor(type: BlockType, size: Int): this(type = type, data = ArrayList<T>(size))
+    {
+        if (size <= 0) {
+            throw IllegalArgumentException("Data size must be positive")
+        }
+
+        when(type) {
+            BlockType.I8Sparse,
+            BlockType.I16Sparse,
+            BlockType.I32Sparse,
+            BlockType.I64Sparse,
+            BlockType.U8Sparse,
+            BlockType.U16Sparse,
+            BlockType.U32Sparse,
+            BlockType.U64Sparse ->
+                throw IllegalArgumentException("Can't create a dense block with sparse data type")
+            BlockType.String ->
+                throw IllegalArgumentException("Can't create a dense block with String data type")
+            else -> { /* OK, do nothing */ }
+        }
+    }
 
     @Suppress("UNCHECKED_CAST")
-    fun add(value: Any) {
+    fun add(value: Any): DenseBlock<T> {
         data.add(value as T)
+        return this
     }
 
     override fun write(dos: DataOutput) {
@@ -140,7 +162,27 @@ class SparseBlock<T> : Block
     }
 
     constructor(type: BlockType, size: Int)
-            : this(type = type, offsetData = ArrayList(size), valueData = ArrayList(size)) {}
+            : this(type = type, offsetData = ArrayList(size), valueData = ArrayList(size))
+    {
+        if (size <= 0) {
+            throw IllegalArgumentException("Data size must be positive")
+        }
+
+        when(type) {
+            BlockType.I8Dense,
+            BlockType.I16Dense,
+            BlockType.I32Dense,
+            BlockType.I64Dense,
+            BlockType.U8Dense,
+            BlockType.U16Dense,
+            BlockType.U32Dense,
+            BlockType.U64Dense ->
+                throw IllegalArgumentException("Can't create a dense block with dense data type")
+            BlockType.String ->
+                throw IllegalArgumentException("Can't create a dense block with String data type")
+            else -> { /* OK, do nothing */ }
+        }
+    }
 
     fun getMaybe(offset: Int): Optional<T> {
         while (currentPosition < offsetData.size && offsetData[currentPosition] < offset) {
@@ -154,9 +196,10 @@ class SparseBlock<T> : Block
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun add(offset: Int, value: Any) {
+    fun add(offset: Int, value: Any): SparseBlock<T> {
         offsetData.add(offset)
         valueData.add(value as T)
+        return this
     }
 
     override fun write(dos: DataOutput) {
@@ -190,7 +233,11 @@ class StringBlock : Block
         this.valueStartPositions = valueStartPositions
     }
     constructor(size: Int)
-            : this(offsetData = ArrayList<Int>(size), valueStartPositions = ArrayList<Long>(size)) {}
+            : this(offsetData = ArrayList<Int>(size), valueStartPositions = ArrayList<Long>(size)) {
+        if (size <= 0) {
+            throw IllegalArgumentException("Data size must be positive")
+        }
+    }
 
     fun getMaybe(offset: Int): Optional<String> {
         while (currentPosition < offsetData.size && offsetData[currentPosition] < offset) {

@@ -2,87 +2,111 @@ package co.llective.hyena.api
 
 import io.airlift.log.Logger
 import nanomsg.Nanomsg
+import nanomsg.Socket
 import nanomsg.reqrep.ReqSocket
 import java.io.IOException
-import java.nio.ByteOrder
 import java.nio.charset.Charset
 import java.util.*
 
-class HyenaApi {
-    private val s = ReqSocket()
+open class HyenaApi internal constructor(private val connection: HyenaConnection){
+    constructor() : this(HyenaConnection())
 
-    var connected : Boolean = false
-        private set
+    fun connect(address: String) = connection.connect(address)
 
-    @Synchronized
-    private fun ensureConnected() {
-        if (!connected) {
-            throw RuntimeException("Hyena must be connected first!")
+    private fun <T, C> makeApiCall(message: ByteArray, expected: Class<C>, extract: (C) -> T): T {
+        val reply = connection.sendAndReceive(message)
+
+        @Suppress("UNCHECKED_CAST")
+        when (reply.javaClass) {
+            expected -> return extract(reply as C)
+            else -> {
+                log.error("Got a wrong reply. Expected ${expected.simpleName}, got : $reply")
+                throw ReplyException("Expected ${expected.simpleName}, got $reply")
+            }
         }
     }
 
-    @Throws(IOException::class)
+    @Throws(IOException::class, ReplyException::class)
     fun listColumns() : List<Column> {
         val message = MessageBuilder.buildListColumnsMessage()
-        s.send(message)
-        val replyBuf = s.recv()
-        val reply = MessageDecoder.decode(replyBuf);
-
-        return when (reply) {
-            is ListColumnsReply -> reply.columns
-            else ->  {
-                log.error("Got a wrong reply: " + reply)
-                emptyList()
-            }
-        }
+        return makeApiCall(message, ListColumnsReply::class.java) { reply -> reply.columns }
     }
 
-    @Throws(IOException::class)
+    @Throws(IOException::class, ReplyException::class)
     fun addColumn(column: Column) : Optional<Int> {
         val message = MessageBuilder.buildAddColumnMessage(column)
-        s.send(message)
-        val replyBuf = s.recv()
-        val reply = MessageDecoder.decode(replyBuf);
-
-        return when (reply) {
-            is AddColumnReply -> when (reply.result) {
+        return makeApiCall(message, AddColumnReply::class.java) {
+            reply -> when (reply.result) {
                 is Left -> Optional.of(reply.result.value)
                 is Right -> {
-                    log.error("Could not add column: ${reply.result.value}");
+                    log.error("Could not add column: ${reply.result.value}")
                     Optional.empty()
                 }
-            }
-            else -> {
-                log.error("Got a wrong reply: " + reply)
-                Optional.empty()
             }
         }
     }
 
-    @Throws(IOException::class)
+    @Throws(IOException::class, ReplyException::class)
     fun insert(source: Int, timestamps: List<Long>, vararg columnData: ColumnData) : Optional<Int> {
         val message = MessageBuilder.buildInsertMessage(source, timestamps, *columnData)
-        s.send(message)
-        val replyBuf = s.recv()
-        val reply = MessageDecoder.decode(replyBuf);
-
-        return when (reply) {
-            is InsertReply -> when (reply.result) {
+        return makeApiCall(message, InsertReply::class.java) { reply ->
+            when (reply.result) {
                 is Left -> Optional.of(reply.result.value)
                 is Right -> {
-                    log.error("Could not insert data");
+                    log.error("Could not insert data")
                     Optional.empty()
                 }
-            }
-            else -> {
-                log.error("Got a wrong reply: " + reply)
-                Optional.empty()
             }
         }
     }
 
+    @Throws(IOException::class, ReplyException::class)
+    fun scan(req: ScanRequest, metaOrNull: HyenaOpMetadata?): ScanResult {
+        val message = MessageBuilder.buildScanMessage(req)
+        return makeApiCall(message, ScanReply::class.java) { reply -> reply.result }
+    }
+
+    @Throws(IOException::class, ReplyException::class)
+    fun refreshCatalog(): Catalog {
+        val message = MessageBuilder.buildRefreshCatalogMessage()
+        return makeApiCall(message, CatalogReply::class.java) { reply -> reply.result }
+    }
+
+    companion object {
+        private val log = Logger.get(HyenaApi::class.java)
+
+        val UTF8_CHARSET: Charset = Charset.forName("UTF-8")
+    }
+
+    class HyenaOpMetadata {
+        var bytes: Int = 0
+    }
+}
+
+open internal class HyenaConnection(private val s: Socket = ReqSocket(), private var connected: Boolean = false) {
+    @Synchronized
+    internal open fun ensureConnected() {
+        if (!connected) {
+            throw IOException("Hyena must be connected first!")
+        }
+    }
+
     @Throws(IOException::class)
-    fun connect(url: String) {
+    open fun sendAndReceive(message: ByteArray): Reply {
+        ensureConnected()
+
+        try {
+            s.send(message)
+            val replyBuf = s.recv()
+            return MessageDecoder.decode(replyBuf)
+        } catch (t: Throwable) {
+            log.error("Nanomsg error: " + Nanomsg.getError())
+            throw IOException("Nanomsg error: " + Nanomsg.getError(), t)
+        }
+    }
+
+    @Throws(IOException::class)
+    internal fun connect(url: String) {
         log.info("Opening new connection to: " + url)
         s.setRecvTimeout(60000)
         s.setSendTimeout(60000)
@@ -91,55 +115,16 @@ class HyenaApi {
         this.connected = true
     }
 
-    fun close() {
+    private fun close() {
         s.close()
     }
 
-    @Throws(IOException::class)
-    fun scan(req: ScanRequest, metaOrNull: HyenaOpMetadata?): ScanResult {
-        ensureConnected()
-
-        s.send(MessageBuilder.buildScanMessage(req))
-        log.info("Sent scan request to partition " + req.partitionId)
-        try {
-            log.info("Waiting for scan response from partition " + req.partitionId)
-            val buf = s.recv()
-            log.info("Received scan response from partition " + req.partitionId)
-            buf.order(ByteOrder.LITTLE_ENDIAN)
-
-            val result = MessageDecoder.decodeScanReply(buf)
-
-            metaOrNull?.bytes = buf.position()
-
-            return result
-        } catch (t: Throwable) {
-            log.error("Nanomsg error: " + Nanomsg.getError())
-            throw IOException("Nanomsg error: " + Nanomsg.getError(), t)
-        }
-    }
-
-    @Throws(IOException::class)
-    fun refreshCatalog(): Catalog {
-        ensureConnected()
-
-        s.send(MessageBuilder.buildRefreshCatalogMessage())
-
-        val buf = s.recv()
-        buf.order(ByteOrder.LITTLE_ENDIAN)
-        return MessageDecoder.decodeRefreshCatalog(buf)
-    }
-
+    @Suppress("unused")
     protected fun finalize() {
         close()
     }
 
     companion object {
-        private val log = Logger.get(HyenaApi::class.java)
-
-        val UTF8_CHARSET = Charset.forName("UTF-8")
-    }
-
-    class HyenaOpMetadata {
-        var bytes: Int = 0
+        private val log = Logger.get(HyenaConnection::class.java)
     }
 }
