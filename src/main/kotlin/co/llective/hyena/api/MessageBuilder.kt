@@ -109,7 +109,11 @@ object MessageBuilder {
         dos.writeInt(filter.column)
         dos.writeInt(filter.op.ordinal)
         dos.writeLong(filter.value)
-        writeString(dos, filter.strValue)
+        if (filter.strValue.isPresent) {
+            writeString(dos, filter.strValue.get())
+        } else {
+            dos.writeLong(0) // Length of string: 0
+        }
 
         return baos.toByteArray()
     }

@@ -1,7 +1,13 @@
 package co.llective.hyena.api
 
-data class ScanFilterBuilder(val filter: ScanFilter, val columnSet: Boolean, val opSet: Boolean, val filterValSet: Boolean) {
+import java.util.*
 
+data class ScanFilterBuilder(
+        val filter: ScanFilter = ScanFilter.empty(),
+        val columnSet: Boolean = false,
+        val opSet: Boolean = false,
+        val filterValSet: Boolean = false
+) {
     fun withColumn(column: Int): ScanFilterBuilder
         = this.copy(columnSet = true, filter = filter.copy(column = column))
 
@@ -12,7 +18,7 @@ data class ScanFilterBuilder(val filter: ScanFilter, val columnSet: Boolean, val
         = this.copy(filterValSet = true, filter = filter.copy(value = value))
 
     fun withStringValue(value: String): ScanFilterBuilder
-        = this.copy(filterValSet = true, filter = filter.copy(strValue = value))
+        = this.copy(filterValSet = true, filter = filter.copy(strValue = Optional.of(value)))
 
     fun build(): ScanFilter {
         if (!filterValSet) {

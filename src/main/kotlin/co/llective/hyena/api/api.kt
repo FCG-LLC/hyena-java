@@ -61,8 +61,20 @@ data class ScanRequest(var minTs: Long = 0,
                        var filters: List<ScanFilter> = arrayListOf(),
                        var projection: List<Int> = arrayListOf()) {}
 
-data class ScanFilter(val column: Int, val op: ScanComparison = ScanComparison.Eq, val value: Long, val strValue: String) {
+data class ScanFilter(
+        val column: Int,
+        val op: ScanComparison = ScanComparison.Eq,
+        val value: Long,
+        val strValue: Optional<String>
+) {
     override fun toString(): String = "$column ${op.name} $value/$strValue"
+
+    companion object {
+        @JvmStatic
+        fun empty(): ScanFilter {
+            return ScanFilter(0, ScanComparison.Eq, 0, Optional.empty())
+        }
+    }
 }
 
 open class Column(val dataType: BlockType, val id: Int, val name: String) {
