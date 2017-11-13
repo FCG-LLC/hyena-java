@@ -11,6 +11,7 @@ import java.util.*
 open class HyenaApi internal constructor(private val connection: HyenaConnection){
     constructor() : this(HyenaConnection())
 
+    @Throws(IOException::class)
     fun connect(address: String) = connection.connect(address)
 
     private fun <T, C> makeApiCall(message: ByteArray, expected: Class<C>, extract: (C) -> T): T {
