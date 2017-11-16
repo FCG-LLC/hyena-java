@@ -104,7 +104,7 @@ open internal class HyenaConnection(private val s: Socket = ReqSocket(), private
             val replyBuf = s.recv()
             return MessageDecoder.decode(replyBuf)
         } catch (t: Throwable) {
-            log.error("Nanomsg error: " + Nanomsg.getError())
+            log.error("Nanomsg error: " + Nanomsg.getError(), t)
             throw IOException("Nanomsg error: " + Nanomsg.getError(), t)
         }
     }
