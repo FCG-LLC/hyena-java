@@ -50,7 +50,7 @@ object MessageBuilder {
 
         dos.writeLong(req.minTs)
         dos.writeLong(req.maxTs)
-        dos.writeChars(req.partitionId.toString()) //HEY MR REVIEWER, TAKE A LOOK AT ME
+        writeString(dos, req.partitionId.toString())
 
         writeIntList(dos, req.projection)
 
