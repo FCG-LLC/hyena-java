@@ -11,7 +11,11 @@ import java.util.*
 open class HyenaApi internal constructor(private val connection: HyenaConnection){
     constructor() : this(HyenaConnection())
 
+    @Throws(IOException::class)
     fun connect(address: String) = connection.connect(address)
+
+    @Throws(IOException::class)
+    fun close() = connection.finalize()
 
     private fun <T, C> makeApiCall(message: ByteArray, expected: Class<C>, extract: (C) -> T): T {
         val reply = connection.sendAndReceive(message)
@@ -100,7 +104,7 @@ open internal class HyenaConnection(private val s: Socket = ReqSocket(), private
             val replyBuf = s.recv()
             return MessageDecoder.decode(replyBuf)
         } catch (t: Throwable) {
-            log.error("Nanomsg error: " + Nanomsg.getError())
+            log.error("Nanomsg error: " + Nanomsg.getError(), t)
             throw IOException("Nanomsg error: " + Nanomsg.getError(), t)
         }
     }
@@ -115,13 +119,9 @@ open internal class HyenaConnection(private val s: Socket = ReqSocket(), private
         this.connected = true
     }
 
-    private fun close() {
+    @Throws(IOException::class)
+    internal fun finalize() {
         s.close()
-    }
-
-    @Suppress("unused")
-    protected fun finalize() {
-        close()
     }
 
     companion object {

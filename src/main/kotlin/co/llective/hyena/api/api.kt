@@ -58,7 +58,7 @@ enum class BlockType {
 
 data class ScanRequest(var minTs: Long = 0,
                        var maxTs: Long = 0,
-                       var partitionId: Long = 0,
+                       var partitionId: UUID = UUID.randomUUID(),
                        var filters: List<ScanFilter> = arrayListOf(),
                        var projection: List<Int> = arrayListOf())
 

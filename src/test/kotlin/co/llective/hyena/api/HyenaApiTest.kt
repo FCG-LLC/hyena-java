@@ -148,7 +148,7 @@ object HyenaApiTest : Spek({
             doNothing().`when`(connection).ensureConnected()
             val sut = HyenaApi(connection)
 
-            val req = ScanRequest(0, 10, 100, listOf(), listOf())
+            val req = ScanRequest(0, 10, UUID.randomUUID(), listOf(), listOf())
             assert.that({sut.scan(req, null)}, throws<ReplyException>())
         }
 
@@ -160,7 +160,7 @@ object HyenaApiTest : Spek({
             doNothing().`when`(connection).ensureConnected()
             val sut = HyenaApi(connection)
 
-            val req = ScanRequest(0, 10, 100, listOf(), listOf())
+            val req = ScanRequest(0, 10, UUID.randomUUID(), listOf(), listOf())
             val reply = sut.scan(req, null)
             assert.that(scanResult, sameInstance(reply))
         }
