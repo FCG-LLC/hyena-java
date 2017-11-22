@@ -58,10 +58,19 @@ compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
 }
 
+sourceSets {
+    main.java.srcDirs += 'src/main/kotlin/'
+}
+
+task sourcedJar(type: Jar) {
+    from sourceSets.main.allSource
+    with jar
+}
+
 task fatJar(type: Jar) {
- from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
- baseName = project.name + '-all'
- with jar
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    baseName = project.name + '-all'
+    with sourcedJar
 }
 
 task repledJar(type: Jar) {
