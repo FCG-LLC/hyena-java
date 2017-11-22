@@ -7,13 +7,24 @@ import java.nio.ByteBuffer
 import java.util.*
 
 object MessageDecoder {
-    fun decode(buf: ByteBuffer) : Reply {
-        val requestType = ApiRequest.values()[buf.int]
 
-        return decode(requestType, buf)
+    fun decode(buf: ByteBuffer) : Reply {
+        val responseType = decodeMessageType(buf)
+
+        return decodeMessage(responseType, buf)
     }
 
-    private fun decode(request: ApiRequest, buf: ByteBuffer) : Reply {
+    internal fun decodeMessageType(buf: ByteBuffer) : ApiRequest {
+        val messageTypeId = buf.int
+
+        if (messageTypeId <= ApiRequest.values().size) {
+            return ApiRequest.values()[messageTypeId]
+        } else {
+            throw throw DeserializationException("Cannot deserialize response type of index " + messageTypeId)
+        }
+    }
+
+    private fun decodeMessage(request: ApiRequest, buf: ByteBuffer) : Reply {
         return when(request) {
             ApiRequest.ListColumns -> decodeListColumn(buf)
             ApiRequest.Insert -> InsertReply(decodeEither(buf))
@@ -22,6 +33,7 @@ object MessageDecoder {
             ApiRequest.AddColumn -> AddColumnReply(decodeEither(buf))
             ApiRequest.Flush -> TODO()
             ApiRequest.DataCompaction -> TODO()
+            ApiRequest.Other -> TODO()
         }
     }
 
@@ -195,5 +207,10 @@ object MessageDecoder {
             bi += TWO_COMPLEMENT
         }
         return bi
+    }
+
+    class DeserializationException : Exception {
+        constructor(msg : String) : super(msg)
+        constructor(msg : String, cause : Exception) : super(msg, cause)
     }
 }
