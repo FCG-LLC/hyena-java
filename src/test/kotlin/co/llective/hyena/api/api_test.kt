@@ -1,6 +1,5 @@
 package co.llective.hyena.api
 
-import com.google.common.io.LittleEndianDataOutputStream
 import com.natpryce.hamkrest.assertion.assert
 import com.natpryce.hamkrest.equalTo
 import com.natpryce.hamkrest.throws

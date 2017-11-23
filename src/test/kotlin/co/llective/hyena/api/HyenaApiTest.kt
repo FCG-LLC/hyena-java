@@ -155,7 +155,7 @@ object HyenaApiTest : Spek({
         it("Correctly extracts the reply") {
             val scanResult = mock<ScanResult>()
             val connection = mock<HyenaConnection> {
-                on { sendAndReceive(any()) } doReturn ScanReply(scanResult)
+                on { sendAndReceive(any()) } doReturn ScanReply(Left(scanResult))
             }
             doNothing().`when`(connection).ensureConnected()
             val sut = HyenaApi(connection)

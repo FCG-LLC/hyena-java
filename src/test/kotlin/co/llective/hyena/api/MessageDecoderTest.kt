@@ -32,7 +32,7 @@ object MessageDecoderTest : Spek({
 
             assert.that(
                 {MessageDecoder.decodeMessageType(byteBuffer)},
-                throws<MessageDecoder.DeserializationException>()
+                throws<DeserializationException>()
             )
         }
     }
