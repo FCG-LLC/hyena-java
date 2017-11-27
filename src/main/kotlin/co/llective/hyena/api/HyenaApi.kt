@@ -23,6 +23,10 @@ open class HyenaApi internal constructor(private val connection: HyenaConnection
         @Suppress("UNCHECKED_CAST")
         when (reply.javaClass) {
             expected -> return extract(reply as C)
+            SerializeError::class.java -> {
+                log.error("Serialization error: ${(reply as SerializeError).message}")
+                throw ReplyException("Serialization error: ${reply.message}")
+            }
             else -> {
                 log.error("Got a wrong reply. Expected ${expected.simpleName}, got : $reply")
                 throw ReplyException("Expected ${expected.simpleName}, got $reply")

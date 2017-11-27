@@ -22,6 +22,8 @@ object MessageDecoder {
             ApiRequest.AddColumn -> AddColumnReply(decodeEither(buf))
             ApiRequest.Flush -> TODO()
             ApiRequest.DataCompaction -> TODO()
+            ApiRequest.SerializeError -> SerializeError(decoderSerializeError(buf))
+            ApiRequest.CatalogError -> TODO()
         }
     }
 
@@ -97,6 +99,11 @@ object MessageDecoder {
         }
 
         return ListColumnsReply(columns)
+    }
+
+    @Throws(IOException::class)
+    private fun decoderSerializeError(buf: ByteBuffer): String {
+        return decodeString(buf)
     }
 
     @Throws(IOException::class)

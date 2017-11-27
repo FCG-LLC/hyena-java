@@ -14,7 +14,9 @@ enum class ApiRequest {
     RefreshCatalog,
     AddColumn,
     Flush,
-    DataCompaction
+    DataCompaction,
+    SerializeError,
+    CatalogError
 }
 
 enum class ScanComparison {
