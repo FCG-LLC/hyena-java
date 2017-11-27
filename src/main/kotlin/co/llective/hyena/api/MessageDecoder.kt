@@ -58,8 +58,14 @@ object MessageDecoder {
     private fun decodePartitionInfo(buf: ByteBuffer): PartitionInfo {
         val minTs = buf.long
         val maxTes = buf.long
-        val uuidString = decodeString(buf)
-        return PartitionInfo(minTs, maxTes, UUID.fromString(uuidString), decodeString(buf))
+        val uuid = decodeUuid(buf)
+        return PartitionInfo(minTs, maxTes, uuid, decodeString(buf))
+    }
+
+    private fun decodeUuid(buf: ByteBuffer): UUID {
+        val hi = buf.long
+        val lo = buf.long
+        return UUID(hi, lo)
     }
 
     private fun decodeEither(buf: ByteBuffer): Either<Int, ApiError> {

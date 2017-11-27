@@ -2,6 +2,7 @@ package co.llective.hyena.api
 
 import com.google.common.io.LittleEndianDataOutputStream
 import java.io.*
+import java.util.UUID
 
 object MessageBuilder {
 
@@ -50,7 +51,7 @@ object MessageBuilder {
 
         dos.writeLong(req.minTs)
         dos.writeLong(req.maxTs)
-        writeString(dos, req.partitionId.toString())
+        writeUUID(dos, req.partitionId)
 
         writeIntList(dos, req.projection)
 
@@ -62,6 +63,12 @@ object MessageBuilder {
         baos.close()
 
         return baos.toByteArray()
+    }
+
+    @Throws(IOException::class)
+    private fun writeUUID(dos: DataOutput, uuid: UUID) {
+        dos.writeLong(uuid.mostSignificantBits)
+        dos.writeLong(uuid.leastSignificantBits)
     }
 
     @Throws(IOException::class)
