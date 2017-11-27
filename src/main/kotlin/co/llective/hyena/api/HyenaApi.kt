@@ -61,7 +61,7 @@ open class HyenaApi internal constructor(private val connection: HyenaConnection
             when (reply.result) {
                 is Left -> Optional.of(reply.result.value)
                 is Right -> {
-                    log.error("Could not insert data")
+                    log.error("Could not insert data ${reply.result.value}")
                     Optional.empty()
                 }
             }
