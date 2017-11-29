@@ -71,7 +71,14 @@ open class HyenaApi internal constructor(private val connection: HyenaConnection
     @Throws(IOException::class, ReplyException::class)
     fun scan(req: ScanRequest, metaOrNull: HyenaOpMetadata?): ScanResult {
         val message = MessageBuilder.buildScanMessage(req)
-        return makeApiCall(message, ScanReply::class.java) { reply -> reply.result }
+        return makeApiCall(message, ScanReply::class.java) { reply ->
+            when(reply.result) {
+                is Left -> reply.result.value
+                is Right -> {
+                    throw ReplyException(reply.result.value)
+                }
+            }
+        }
     }
 
     @Throws(IOException::class, ReplyException::class)
@@ -99,7 +106,7 @@ open internal class HyenaConnection(private val s: Socket = ReqSocket(), private
         }
     }
 
-    @Throws(IOException::class)
+    @Throws(IOException::class, DeserializationException::class)
     open fun sendAndReceive(message: ByteArray): Reply {
         ensureConnected()
 
@@ -107,9 +114,8 @@ open internal class HyenaConnection(private val s: Socket = ReqSocket(), private
             s.send(message)
             val replyBuf = s.recv()
             return MessageDecoder.decode(replyBuf)
-        } catch (t: Throwable) {
-            log.error("Nanomsg error: " + Nanomsg.getError(), t)
-            throw IOException("Nanomsg error: " + Nanomsg.getError(), t)
+        } catch (exc: IOException) {
+            throw IOException("Nanomsg error: " + Nanomsg.getError(), exc)
         }
     }
 

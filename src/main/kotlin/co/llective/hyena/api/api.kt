@@ -16,7 +16,7 @@ enum class ApiRequest {
     Flush,
     DataCompaction,
     SerializeError,
-    CatalogError
+    Other
 }
 
 enum class ScanComparison {
@@ -109,7 +109,11 @@ data class BlockHolder(val type: BlockType, val block: Block) {
     override fun toString(): String = "$type with ${block.count} elements"
 }
 
-class ReplyException(s: String) : Exception(s)
+class ReplyException : Exception {
+    constructor(s: String) : super(s)
+    constructor(s: String, cause : ApiError) : super(s + " - " + cause.type + " (" + cause.extra.orElse(" ") + ")")
+    constructor(cause : ApiError) : this("Api exception occurred", cause)
+}
 
 abstract class Block(val type: BlockType, val count: Int) {
 
