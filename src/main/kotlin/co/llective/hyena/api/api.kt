@@ -62,7 +62,7 @@ data class ScanRequest(var minTs: Long = 0,
                        var maxTs: Long = 0,
                        var partitionId: UUID = UUID.randomUUID(),
                        var filters: List<ScanFilter> = arrayListOf(),
-                       var projection: List<Int> = arrayListOf())
+                       var projection: List<Long> = arrayListOf())
 
 data class ScanFilter(
         val column: Int,
@@ -79,6 +79,10 @@ data class ScanFilter(
         }
     }
 }
+
+//data class DataTriple(val columnId: Long, val columnType: BlockType, val data: Optional<Block>)
+//
+//data class ScanResult(val data: List<DataTriple>)
 
 open class Column(val dataType: BlockType, val id: Int, val name: String) {
     override fun toString(): String = "$name/$id ${dataType.name}"

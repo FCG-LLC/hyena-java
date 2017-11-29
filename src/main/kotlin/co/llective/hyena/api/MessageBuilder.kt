@@ -51,9 +51,10 @@ object MessageBuilder {
 
         dos.writeLong(req.minTs)
         dos.writeLong(req.maxTs)
-        writeUUID(dos, req.partitionId)
+        writeString(dos, req.partitionId.toString())
+        //writeUUID(dos, req.partitionId)
 
-        writeIntList(dos, req.projection)
+        writeLongList(dos, req.projection)
 
         dos.writeLong(req.filters.size.toLong())
         for (filter in req.filters) {
@@ -113,7 +114,7 @@ object MessageBuilder {
         val baos = ByteArrayOutputStream()
         val dos = LittleEndianDataOutputStream(baos)
 
-        dos.writeInt(filter.column)
+        dos.writeLong(filter.column.toLong())
         dos.writeInt(filter.op.ordinal)
         dos.writeLong(filter.value)
         if (filter.strValue.isPresent) {
