@@ -2,12 +2,41 @@ package co.llective.hyena.api
 
 import com.natpryce.hamkrest.assertion.assert
 import com.natpryce.hamkrest.equalTo
+import com.natpryce.hamkrest.throws
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
 import java.math.BigInteger
+import java.nio.ByteBuffer
 
 object MessageDecoderTest : Spek({
+    describe("Decode Message Type") {
+        it("Correctly decodes Message Types") {
+            for ((messageTypeId, messageType) in ApiRequest.values().withIndex()) {
+                val byteBuffer = ByteBuffer.allocate(16)
+                byteBuffer.putInt(messageTypeId)
+                byteBuffer.putInt(123)      //rest of the message
+                byteBuffer.position(0) //reset position
+
+                val actualMessageType = MessageDecoder.decodeMessageType(byteBuffer)
+                assert.that(actualMessageType, equalTo(messageType))
+            }
+        }
+
+        it("Throws on wrong message type id") {
+            val tooBigId = ApiRequest.values().size + 1
+            val byteBuffer = ByteBuffer.allocate(16)
+            byteBuffer.putInt(tooBigId)
+            byteBuffer.putInt(123)      //rest of the message
+            byteBuffer.position(0) //reset position
+
+            assert.that(
+                {MessageDecoder.decodeMessageType(byteBuffer)},
+                throws<DeserializationException>()
+            )
+        }
+    }
+
     describe("Decode BigInt") {
         it("Correctly decodes positive numbers") {
             val bi = MessageDecoder.decodeBigInt(0)

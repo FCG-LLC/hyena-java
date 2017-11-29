@@ -7,34 +7,53 @@ import java.nio.ByteBuffer
 import java.util.*
 
 object MessageDecoder {
-    fun decode(buf: ByteBuffer) : Reply {
-        val requestType = ApiRequest.values()[buf.int]
 
-        return decode(requestType, buf)
+    fun decode(buf: ByteBuffer) : Reply {
+        try {
+            val responseType = decodeMessageType(buf)
+
+            return decodeMessage(responseType, buf)
+        } catch (exc : RuntimeException) {
+            throw DeserializationException(exc)
+        }
     }
 
-    private fun decode(request: ApiRequest, buf: ByteBuffer) : Reply {
+    internal fun decodeMessageType(buf: ByteBuffer) : ApiRequest {
+        val messageTypeId = buf.int
+
+        if (messageTypeId <= ApiRequest.values().size) {
+            return ApiRequest.values()[messageTypeId]
+        } else {
+            throw throw DeserializationException("Cannot deserialize response type of index " + messageTypeId)
+        }
+    }
+
+    private fun decodeMessage(request: ApiRequest, buf: ByteBuffer) : Reply {
         return when(request) {
             ApiRequest.ListColumns -> decodeListColumn(buf)
-            ApiRequest.Insert -> InsertReply(decodeEither(buf))
-            ApiRequest.Scan -> ScanReply(decodeScanReply(buf))
+            ApiRequest.Insert -> InsertReply(decodeIntOrError(buf))
+            ApiRequest.Scan -> ScanReply(decodeScanReplyOrError(buf))
             ApiRequest.RefreshCatalog -> CatalogReply(decodeRefreshCatalog(buf))
-            ApiRequest.AddColumn -> AddColumnReply(decodeEither(buf))
+            ApiRequest.AddColumn -> AddColumnReply(decodeIntOrError(buf))
             ApiRequest.Flush -> TODO()
             ApiRequest.DataCompaction -> TODO()
+            ApiRequest.Other -> TODO()
         }
     }
 
     @Throws(IOException::class)
-    private fun decodeScanReply(buf: ByteBuffer): ScanResult {
-        val type = buf.int
-        // TODO validate message type
-        val rowCount = buf.int
-        val colCount = buf.int
-        val columns = decodeColumnTypes(buf)
-        val blocks = decodeBlocks(buf)
+    private fun decodeScanReplyOrError(buf: ByteBuffer): Either<ScanResult, ApiError> {
+        val isError = buf.int
+        return if (isError == 0) {
+            val rowCount = buf.int
+            val colCount = buf.int
+            val columns = decodeColumnTypes(buf)
+            val blocks = decodeBlocks(buf)
 
-        return ScanResult(rowCount, colCount, columns, blocks)
+            Left(ScanResult(rowCount, colCount, columns, blocks))
+        } else {
+            Right(decodeApiError(buf))
+        }
     }
 
     @Throws(IOException::class)
@@ -62,7 +81,7 @@ object MessageDecoder {
         return PartitionInfo(minTs, maxTes, UUID.fromString(uuidString), decodeString(buf))
     }
 
-    private fun decodeEither(buf: ByteBuffer): Either<Int, ApiError> {
+    private fun decodeIntOrError(buf: ByteBuffer): Either<Int, ApiError> {
         val ok = buf.int
         return if (ok == 0) {
             Left(buf.long.toInt())
@@ -196,4 +215,10 @@ object MessageDecoder {
         }
         return bi
     }
+}
+
+class DeserializationException : Exception {
+    constructor(msg : String) : super(msg)
+    constructor(msg : String, cause : Exception) : super(msg, cause)
+    constructor(cause : Exception) : this("Error during deserialization occurred", cause)
 }
