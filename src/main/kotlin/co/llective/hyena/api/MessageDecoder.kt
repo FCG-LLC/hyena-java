@@ -1,6 +1,5 @@
 package co.llective.hyena.api
 
-import org.apache.commons.lang3.tuple.Pair
 import java.io.IOException
 import java.math.BigInteger
 import java.nio.ByteBuffer
@@ -11,7 +10,6 @@ object MessageDecoder {
     fun decode(buf: ByteBuffer) : Reply {
         try {
             val responseType = decodeMessageType(buf)
-
             return decodeMessage(responseType, buf)
         } catch (exc : RuntimeException) {
             throw DeserializationException(exc)
@@ -31,10 +29,10 @@ object MessageDecoder {
     private fun decodeMessage(request: ApiRequest, buf: ByteBuffer) : Reply {
         return when(request) {
             ApiRequest.ListColumns -> decodeListColumn(buf)
-            ApiRequest.Insert -> InsertReply(decodeIntOrError(buf))
-            ApiRequest.Scan -> ScanReply(decodeScanReplyOrError(buf))
+            ApiRequest.Insert -> InsertReply(decodeEither(buf) {b -> b.int})
+            ApiRequest.Scan -> ScanReply(decodeEither(buf, this::decodeScanResult))
             ApiRequest.RefreshCatalog -> CatalogReply(decodeRefreshCatalog(buf))
-            ApiRequest.AddColumn -> AddColumnReply(decodeIntOrError(buf))
+            ApiRequest.AddColumn -> AddColumnReply(decodeEither(buf) {b -> b.int})
             ApiRequest.Flush -> TODO()
             ApiRequest.DataCompaction -> TODO()
             ApiRequest.SerializeError -> SerializeError(decoderSerializeError(buf))
@@ -43,17 +41,25 @@ object MessageDecoder {
     }
 
     @Throws(IOException::class)
-    private fun decodeScanReplyOrError(buf: ByteBuffer): Either<ScanResult, ApiError> {
-        val isError = buf.int
-        return if (isError == 0) {
-            val rowCount = buf.int
-            val colCount = buf.int
-            val columns = decodeColumnTypes(buf)
-            val blocks = decodeBlocks(buf)
+    private fun decodeScanResult(buf: ByteBuffer): ScanResult {
+        val data = ArrayList<DataTriple>()
+        val listLength = buf.long
 
-            Left(ScanResult(rowCount, colCount, columns, blocks))
+        for (x in 0 until listLength) {
+            data.add(decodeDataTriple(buf))
+        }
+        return ScanResult(data)
+    }
+
+    private fun decodeDataTriple(buf: ByteBuffer): DataTriple {
+        val columnId = buf.long
+        val columnType = BlockType.values()[buf.int]
+        val dataPresent = buf.get()
+        return if (dataPresent == 0.toByte()) {
+            DataTriple(columnId, columnType, Optional.empty())
         } else {
-            Right(decodeApiError(buf))
+            val data = decodeBlockHolder(buf)
+            DataTriple(columnId, columnType, Optional.of(data))
         }
     }
 
@@ -88,10 +94,10 @@ object MessageDecoder {
         return UUID(hi, lo)
     }
 
-    private fun decodeIntOrError(buf: ByteBuffer): Either<Int, ApiError> {
+    private fun <T> decodeEither(buf: ByteBuffer, decodeOk: (buf: ByteBuffer) -> T): Either<T, ApiError> {
         val ok = buf.int
         return if (ok == 0) {
-            Left(buf.long.toInt())
+            Left(decodeOk(buf))
         } else {
             Right(decodeApiError(buf))
         }
@@ -141,31 +147,9 @@ object MessageDecoder {
     }
 
     @Throws(IOException::class)
-    private fun decodeColumnTypes(buf: ByteBuffer): ArrayList<Pair<Int, BlockType>> {
-        val colCount = buf.long
-        val colTypes = ArrayList<Pair<Int, BlockType>>()
-
-        for (i in 0 until colCount) {
-            colTypes.add(Pair.of(buf.int, BlockType.values()[buf.int]))
-        }
-
-        return colTypes
-    }
-
-    @Throws(IOException::class)
-    private fun decodeBlocks(buf: ByteBuffer): List<BlockHolder> {
-        val count = buf.long
-        val blocks = ArrayList<BlockHolder>()
-        for (i in 0 until count) {
-            blocks.add(decodeBlockHolder(buf))
-        }
-        return blocks
-    }
-
-    @Throws(IOException::class)
     private fun decodeBlockHolder(buf: ByteBuffer): BlockHolder {
-        val recordsCount = buf.long.toInt()
         val type = BlockType.values()[buf.int]
+        val recordsCount = buf.long.toInt()
 
         val block = when(type) {
             BlockType.String -> StringBlock(recordsCount)
@@ -218,7 +202,7 @@ object MessageDecoder {
         return BlockHolder(type, block)
     }
 
-    private val TWO_COMPLEMENT: BigInteger = BigInteger.ONE.shiftLeft(64);
+    private val TWO_COMPLEMENT: BigInteger = BigInteger.ONE.shiftLeft(64)
 
     internal fun decodeBigInt(value: Long): BigInteger {
         var bi = BigInteger.valueOf(value)

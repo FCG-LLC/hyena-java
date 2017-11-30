@@ -80,9 +80,9 @@ data class ScanFilter(
     }
 }
 
-//data class DataTriple(val columnId: Long, val columnType: BlockType, val data: Optional<Block>)
-//
-//data class ScanResult(val data: List<DataTriple>)
+data class DataTriple(val columnId: Long, val columnType: BlockType, val data: Optional<BlockHolder>)
+
+data class ScanResult(val data: List<DataTriple>)
 
 open class Column(val dataType: BlockType, val id: Int, val name: String) {
     override fun toString(): String = "$name/$id ${dataType.name}"
@@ -106,7 +106,7 @@ data class ColumnData(val columnIndex: Int, val block: Block) {
 }
 
 data class BlockHolder(val type: BlockType, val block: Block) {
-    override fun toString(): String = "$type with ${block.count} elements"
+    override fun toString(): String = "$type with ${block.count()} elements"
 }
 
 class ReplyException : Exception {
@@ -115,9 +115,11 @@ class ReplyException : Exception {
     constructor(cause : ApiError) : this("Api exception occurred", cause)
 }
 
-abstract class Block(val type: BlockType, val count: Int) {
+abstract class Block(val type: BlockType) {
 
     abstract fun write(dos: DataOutput)
+
+    abstract fun count(): Int
 
     fun <T> write(dos: DataOutput, item: T) {
         when (item) {
@@ -145,7 +147,7 @@ abstract class Block(val type: BlockType, val count: Int) {
 open class DenseBlock<T> : Block {
     val data: ArrayList<T>
 
-    private constructor(type: BlockType, data: ArrayList<T>) : super(type, data.size) { this.data = data}
+    private constructor(type: BlockType, data: ArrayList<T>) : super(type) { this.data = data}
     constructor(type: BlockType, size: Int): this(type = type, data = ArrayList<T>(size))
     {
         if (size <= 0) {
@@ -182,6 +184,8 @@ open class DenseBlock<T> : Block {
     }
 
     override fun toString(): String = "$data"
+
+    override fun count(): Int = data.size
 }
 
 class SparseBlock<T> : Block
@@ -191,7 +195,7 @@ class SparseBlock<T> : Block
     val valueData: MutableList<T>
 
     private constructor(type: BlockType, offsetData: MutableList<Int>, valueData: MutableList<T>)
-        : super(type, offsetData.size)
+        : super(type)
     {
         this.offsetData = offsetData
         this.valueData = valueData
@@ -249,6 +253,8 @@ class SparseBlock<T> : Block
             write(dos, item)
         }
     }
+
+    override fun count(): Int = offsetData.size
 }
 
 class StringBlock : Block
@@ -264,7 +270,7 @@ class StringBlock : Block
     private var currentPosition = 0
 
     private constructor(offsetData: MutableList<Int>, valueStartPositions: MutableList<Long>)
-        : super(BlockType.String, offsetData.size) {
+        : super(BlockType.String) {
         this.offsetData = offsetData
         this.valueStartPositions = valueStartPositions
     }
@@ -299,4 +305,6 @@ class StringBlock : Block
         offsetData.add(offset)
         valueStartPositions.add(value)
     }
+
+    override fun count(): Int = offsetData.size
 }

@@ -29,7 +29,10 @@ class Connection(address: String) {
 
     fun scan(request: ScanRequest) {
         val result = hyena.scan(request, null)
-        println("Hyena returned ${result.rowCount} rows")
+        println("Hyena returned ${result.data.size} rows")
+        for (res in result.data) {
+            println("${res}")
+        }
     }
 
     fun getCatalog() {
