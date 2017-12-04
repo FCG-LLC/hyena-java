@@ -58,6 +58,20 @@ enum class BlockType {
     String
 }
 
+enum class FilterType {
+    I8,
+    I16,
+    I32,
+    I64,
+    // I128,
+    U8,
+    U16,
+    U32,
+    U64,
+    // U128,
+    String
+}
+
 data class ScanRequest(var minTs: Long = 0,
                        var maxTs: Long = 0,
                        var partitionId: UUID = UUID.randomUUID(),
@@ -67,15 +81,16 @@ data class ScanRequest(var minTs: Long = 0,
 data class ScanFilter(
         val column: Int,
         val op: ScanComparison = ScanComparison.Eq,
-        val value: Long,
+        val type: FilterType,
+        val value: Any,
         val strValue: Optional<String>
 ) {
     override fun toString(): String = "$column ${op.name} $value/$strValue"
 
     companion object {
         @JvmStatic
-        fun empty(): ScanFilter {
-            return ScanFilter(0, ScanComparison.Eq, 0, Optional.empty())
+        fun empty(type: FilterType, value: Any): ScanFilter {
+            return ScanFilter(0, ScanComparison.Eq, type, value, Optional.empty())
         }
     }
 }
@@ -131,13 +146,9 @@ abstract class Block(val type: BlockType) {
         }
     }
 
-    private val TWO_COMPLEMENT: BigInteger = BigInteger.ONE.shiftLeft(64);
-    private val MAX_LONG_BI: BigInteger = BigInteger.valueOf(Long.MAX_VALUE);
-
     internal fun writeBigInteger(dos: DataOutput, item: BigInteger) {
         if (type == BlockType.U64Dense || type == BlockType.U64Sparse) {
-            val bi = if (item <= MAX_LONG_BI) {item} else { item - TWO_COMPLEMENT }
-            dos.writeLong(bi.longValueExact())
+            MessageBuilder.writeU64(dos, item)
         } else {
             throw RuntimeException("Cannot serialize BigInteger for types other then U64Dense and U64Sparse")
         }

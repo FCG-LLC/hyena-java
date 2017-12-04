@@ -3,7 +3,7 @@ package co.llective.hyena.api
 import java.util.*
 
 data class ScanFilterBuilder(
-        private val filter: ScanFilter = ScanFilter.empty(),
+        private val filter: ScanFilter = ScanFilter.empty(FilterType.I64, 0),
         private val columnSet: Boolean = false,
         private val opSet: Boolean = false,
         private val filterValSet: Boolean = false
@@ -14,7 +14,7 @@ data class ScanFilterBuilder(
     fun withOp(op: ScanComparison): ScanFilterBuilder
         = this.copy(opSet = true, filter = filter.copy(op = op))
 
-    fun withLongValue(value: Long): ScanFilterBuilder
+    fun withValue(value: Any): ScanFilterBuilder
         = this.copy(filterValSet = true, filter = filter.copy(value = value))
 
     fun withStringValue(value: String): ScanFilterBuilder
