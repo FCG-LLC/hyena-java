@@ -145,7 +145,7 @@ object MessageBuilder {
             FilterType.U8  -> dos.writeShort(filter.value as Int)
             FilterType.U16 -> dos.writeInt(filter.value as Int)
             FilterType.U32 -> dos.writeLong(filter.value as Long)
-            FilterType.U64 -> writeU64(dos, filter.value as BigInteger)
+            FilterType.U64 -> writeU64(dos, BigInteger.valueOf(filter.value as Long))
 
             FilterType.String -> TODO()
         }
