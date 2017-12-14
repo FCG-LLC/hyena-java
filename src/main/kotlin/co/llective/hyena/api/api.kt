@@ -95,7 +95,13 @@ data class ScanFilter(
     }
 }
 
-data class DataTriple(val columnId: Long, val columnType: BlockType, val data: Optional<BlockHolder>)
+data class DataTriple(val columnId: Long, val columnType: BlockType, val data: Optional<BlockHolder>) {
+    override fun toString(): String {
+        return "Column id $columnId $columnType, data: " +
+                if (data.isPresent()) { data.get().printNumbers() }
+                else { "None" }
+    }
+}
 
 data class ScanResult(val data: List<DataTriple>)
 
@@ -122,6 +128,8 @@ data class ColumnData(val columnIndex: Int, val block: Block) {
 
 data class BlockHolder(val type: BlockType, val block: Block) {
     override fun toString(): String = "$type with ${block.count()} elements"
+
+    fun printNumbers(): String = block.printNumbers()
 }
 
 class ReplyException : Exception {
@@ -135,6 +143,8 @@ abstract class Block(val type: BlockType) {
     abstract fun write(dos: DataOutput)
 
     abstract fun count(): Int
+
+    abstract fun printNumbers() : String
 
     fun <T> write(dos: DataOutput, item: T) {
         when (item) {
@@ -197,6 +207,14 @@ open class DenseBlock<T> : Block {
     override fun toString(): String = "$data"
 
     override fun count(): Int = data.size
+
+    override fun printNumbers(): String {
+        return if (data.isEmpty()) {
+            "Empty"
+        } else {
+            data.drop(1).fold("${data[0]}", {str, num -> "$str, $num" })
+        }
+    }
 }
 
 class SparseBlock<T> : Block
@@ -266,6 +284,10 @@ class SparseBlock<T> : Block
     }
 
     override fun count(): Int = offsetData.size
+
+    override fun printNumbers(): String =
+            offsetData.zip(valueData)
+                    .fold("", {str, (o, v) -> "$str, $o/$v" })
 }
 
 class StringBlock : Block
@@ -318,4 +340,6 @@ class StringBlock : Block
     }
 
     override fun count(): Int = offsetData.size
+
+    override fun printNumbers(): String = "Not implemented"
 }
