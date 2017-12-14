@@ -172,7 +172,7 @@ open class DenseBlock<T> : Block {
     constructor(type: BlockType, size: Int): this(type = type, data = ArrayList<T>(size))
     {
         if (size < 0) {
-            throw IllegalArgumentException("Data size must be positive")
+            throw IllegalArgumentException("Data size must not be negative")
         }
 
         when(type) {

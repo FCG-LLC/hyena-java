@@ -13,12 +13,12 @@ object ScanFilterBuilderTest : Spek({
             val filter1 = ScanFilterBuilder()
                     .withColumn(10)
                     .withOp(ScanComparison.Lt)
-                    .withLongValue(100)
+                    .withValue(100)
                     .build()
 
-            assert.that(filter1.column, equalTo(10))
+            assert.that(filter1.column, equalTo(10L))
             assert.that(filter1.op, equalTo(ScanComparison.Lt))
-            assert.that(filter1.value, equalTo(100L))
+            assert.that(filter1.value, equalTo(100 as Any))
             assert.that(filter1.strValue.isPresent, equalTo(false))
 
             val filter2 = ScanFilterBuilder()
@@ -27,9 +27,9 @@ object ScanFilterBuilderTest : Spek({
                     .withStringValue("a value")
                     .build()
 
-            assert.that(filter2.column, equalTo(10))
+            assert.that(filter2.column, equalTo(10L))
             assert.that(filter2.op, equalTo(ScanComparison.Lt))
-            assert.that(filter2.value, equalTo(0L))
+            assert.that(filter2.value, equalTo(0 as Any))
             assert.that(filter2.strValue.isPresent, equalTo(true))
             assert.that(filter2.strValue.get(), equalTo<String?>("a value"))
         }
@@ -45,7 +45,7 @@ object ScanFilterBuilderTest : Spek({
         it("throws when column not provided") {
             val filter = ScanFilterBuilder()
                     .withOp(ScanComparison.Lt)
-                    .withLongValue(100L)
+                    .withValue(100L)
 
             assert.that({filter.build()}, throws<RuntimeException>())
         }
