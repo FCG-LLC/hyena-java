@@ -79,7 +79,7 @@ data class ScanRequest(var minTs: Long = 0,
                        var projection: List<Long> = arrayListOf())
 
 data class ScanFilter(
-        val column: Int,
+        val column: Long,
         val op: ScanComparison = ScanComparison.Eq,
         val type: FilterType,
         val value: Any,

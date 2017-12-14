@@ -8,7 +8,7 @@ data class ScanFilterBuilder(
         private val opSet: Boolean = false,
         private val filterValSet: Boolean = false
 ) {
-    fun withColumn(column: Int): ScanFilterBuilder
+    fun withColumn(column: Long): ScanFilterBuilder
         = this.copy(columnSet = true, filter = filter.copy(column = column))
 
     fun withOp(op: ScanComparison): ScanFilterBuilder
