@@ -169,6 +169,10 @@ object MessageDecoder {
             BlockType.U16Sparse -> SparseBlock<Int>(type, recordsCount)
             BlockType.U32Sparse -> SparseBlock<Long>(type, recordsCount)
             BlockType.U64Sparse -> SparseBlock<BigInteger>(type, recordsCount)
+            else -> {
+                // 128 bit
+                TODO("implement")
+            }
         }
 
         for (i in 0 until recordsCount) {
@@ -190,6 +194,10 @@ object MessageDecoder {
                 BlockType.U16Sparse -> (block as SparseBlock<*>).add(buf.int, buf.int)
                 BlockType.U32Sparse -> (block as SparseBlock<*>).add(buf.int, buf.long)
                 BlockType.U64Sparse -> (block as SparseBlock<*>).add(buf.int, decodeBigInt(buf.long))
+                BlockType.I128Dense -> TODO()
+                BlockType.U128Dense -> TODO()
+                BlockType.I128Sparse -> TODO()
+                BlockType.U128Sparse -> TODO()
             }
         }
 

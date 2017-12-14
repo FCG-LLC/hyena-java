@@ -33,28 +33,28 @@ enum class BlockType {
     I16Dense,
     I32Dense,
     I64Dense,
-    // I128Dense,
+    I128Dense,
 
     // Dense, Unsigned
     U8Dense,
     U16Dense,
     U32Dense,
     U64Dense,
-    // U128Dense,
+    U128Dense,
 
     // Sparse, Signed
     I8Sparse,
     I16Sparse,
     I32Sparse,
     I64Sparse,
-    // I128Sparse,
+    I128Sparse,
 
     // Sparse, Unsigned
     U8Sparse,
     U16Sparse,
     U32Sparse,
     U64Sparse,
-    // U128Sparse,
+    U128Sparse,
     String
 }
 
@@ -161,7 +161,7 @@ open class DenseBlock<T> : Block {
     private constructor(type: BlockType, data: ArrayList<T>) : super(type) { this.data = data}
     constructor(type: BlockType, size: Int): this(type = type, data = ArrayList<T>(size))
     {
-        if (size <= 0) {
+        if (size < 0) {
             throw IllegalArgumentException("Data size must be positive")
         }
 
