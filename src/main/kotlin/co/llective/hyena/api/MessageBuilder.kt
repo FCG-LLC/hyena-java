@@ -113,7 +113,7 @@ object MessageBuilder {
         val baos = ByteArrayOutputStream()
         val dos = LittleEndianDataOutputStream(baos)
 
-        dos.writeLong(filter.column.toLong())
+        dos.writeLong(filter.column)
         dos.writeInt(filter.op.ordinal)
         writeFilterValue(dos, filter)
         if (filter.strValue.isPresent) {
@@ -126,8 +126,8 @@ object MessageBuilder {
         return baos.toByteArray()
     }
 
-    private val TWO_COMPLEMENT: BigInteger = BigInteger.ONE.shiftLeft(64);
-    private val MAX_LONG_BI: BigInteger = BigInteger.valueOf(Long.MAX_VALUE);
+    private val TWO_COMPLEMENT: BigInteger = BigInteger.ONE.shiftLeft(64)
+    private val MAX_LONG_BI: BigInteger = BigInteger.valueOf(Long.MAX_VALUE)
 
     internal fun writeU64(dos: DataOutput, value: BigInteger) {
         val bi = if (value <= MAX_LONG_BI) {value} else { value - TWO_COMPLEMENT }
