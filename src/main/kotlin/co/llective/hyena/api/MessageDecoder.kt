@@ -133,7 +133,7 @@ object MessageDecoder {
     @Throws(IOException::class)
     private fun decodeColumn(buf: ByteBuffer): Column {
         val type = buf.int
-        val id = buf.long.toInt()
+        val id = buf.long
         return Column(BlockType.values()[type], id, decodeString(buf))
     }
 
