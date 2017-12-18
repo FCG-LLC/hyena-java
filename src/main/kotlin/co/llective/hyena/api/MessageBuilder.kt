@@ -2,6 +2,8 @@ package co.llective.hyena.api
 
 import com.google.common.io.LittleEndianDataOutputStream
 import java.io.*
+import java.math.BigInteger
+import java.util.UUID
 
 object MessageBuilder {
 
@@ -50,9 +52,8 @@ object MessageBuilder {
 
         dos.writeLong(req.minTs)
         dos.writeLong(req.maxTs)
-        writeString(dos, req.partitionId.toString())
-
-        writeIntList(dos, req.projection)
+        writeUUID(dos, req.partitionId)
+        writeLongList(dos, req.projection)
 
         dos.writeLong(req.filters.size.toLong())
         for (filter in req.filters) {
@@ -62,6 +63,12 @@ object MessageBuilder {
         baos.close()
 
         return baos.toByteArray()
+    }
+
+    @Throws(IOException::class)
+    private fun writeUUID(dos: DataOutput, uuid: UUID) {
+        dos.writeLong(uuid.mostSignificantBits)
+        dos.writeLong(uuid.leastSignificantBits)
     }
 
     @Throws(IOException::class)
@@ -106,15 +113,41 @@ object MessageBuilder {
         val baos = ByteArrayOutputStream()
         val dos = LittleEndianDataOutputStream(baos)
 
-        dos.writeInt(filter.column)
+        dos.writeLong(filter.column)
         dos.writeInt(filter.op.ordinal)
-        dos.writeLong(filter.value)
+        writeFilterValue(dos, filter)
         if (filter.strValue.isPresent) {
             writeString(dos, filter.strValue.get())
         } else {
             dos.writeLong(0) // Length of string: 0
         }
+        baos.close()
 
         return baos.toByteArray()
+    }
+
+    private val TWO_COMPLEMENT: BigInteger = BigInteger.ONE.shiftLeft(64)
+    private val MAX_LONG_BI: BigInteger = BigInteger.valueOf(Long.MAX_VALUE)
+
+    internal fun writeU64(dos: DataOutput, value: BigInteger) {
+        val bi = if (value <= MAX_LONG_BI) {value} else { value - TWO_COMPLEMENT }
+        dos.writeLong(bi.longValueExact())
+    }
+
+    private fun writeFilterValue(dos: DataOutput, filter: ScanFilter) {
+        dos.writeInt(filter.type.ordinal)
+        when(filter.type) {
+            FilterType.I8  -> dos.writeByte(filter.value as Int)
+            FilterType.I16 -> dos.writeShort(filter.value as Int)
+            FilterType.I32 -> dos.writeInt(filter.value as Int)
+            FilterType.I64 -> dos.writeLong(filter.value as Long)
+
+            FilterType.U8  -> dos.writeShort(filter.value as Int)
+            FilterType.U16 -> dos.writeInt(filter.value as Int)
+            FilterType.U32 -> dos.writeLong(filter.value as Long)
+            FilterType.U64 -> writeU64(dos, BigInteger.valueOf(filter.value as Long))
+
+            FilterType.String -> TODO()
+        }
     }
 }

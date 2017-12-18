@@ -15,6 +15,7 @@ enum class ApiRequest {
     AddColumn,
     Flush,
     DataCompaction,
+    SerializeError,
     Other
 }
 
@@ -32,28 +33,42 @@ enum class BlockType {
     I16Dense,
     I32Dense,
     I64Dense,
-    // I128Dense,
+    I128Dense,
 
     // Dense, Unsigned
     U8Dense,
     U16Dense,
     U32Dense,
     U64Dense,
-    // U128Dense,
+    U128Dense,
 
     // Sparse, Signed
     I8Sparse,
     I16Sparse,
     I32Sparse,
     I64Sparse,
-    // I128Sparse,
+    I128Sparse,
 
     // Sparse, Unsigned
     U8Sparse,
     U16Sparse,
     U32Sparse,
     U64Sparse,
-    // U128Sparse,
+    U128Sparse,
+    String
+}
+
+enum class FilterType {
+    I8,
+    I16,
+    I32,
+    I64,
+    I128,
+    U8,
+    U16,
+    U32,
+    U64,
+    U128,
     String
 }
 
@@ -61,25 +76,36 @@ data class ScanRequest(var minTs: Long = 0,
                        var maxTs: Long = 0,
                        var partitionId: UUID = UUID.randomUUID(),
                        var filters: List<ScanFilter> = arrayListOf(),
-                       var projection: List<Int> = arrayListOf())
+                       var projection: List<Long> = arrayListOf())
 
 data class ScanFilter(
-        val column: Int,
+        val column: Long,
         val op: ScanComparison = ScanComparison.Eq,
-        val value: Long,
+        val type: FilterType,
+        val value: Any,
         val strValue: Optional<String>
 ) {
     override fun toString(): String = "$column ${op.name} $value/$strValue"
 
     companion object {
         @JvmStatic
-        fun empty(): ScanFilter {
-            return ScanFilter(0, ScanComparison.Eq, 0, Optional.empty())
+        fun empty(type: FilterType, value: Any): ScanFilter {
+            return ScanFilter(0, ScanComparison.Eq, type, value, Optional.empty())
         }
     }
 }
 
-open class Column(val dataType: BlockType, val id: Int, val name: String) {
+data class DataTriple(val columnId: Long, val columnType: BlockType, val data: Optional<BlockHolder>) {
+    override fun toString(): String {
+        return "Column id $columnId $columnType, data: " +
+                if (data.isPresent()) { data.get().printNumbers() }
+                else { "None" }
+    }
+}
+
+data class ScanResult(val data: List<DataTriple>)
+
+open class Column(val dataType: BlockType, val id: Long, val name: String) {
     override fun toString(): String = "$name/$id ${dataType.name}"
 }
 
@@ -101,7 +127,9 @@ data class ColumnData(val columnIndex: Int, val block: Block) {
 }
 
 data class BlockHolder(val type: BlockType, val block: Block) {
-    override fun toString(): String = "$type with ${block.count} elements"
+    override fun toString(): String = "$type with ${block.count()} elements"
+
+    fun printNumbers(): String = block.printNumbers()
 }
 
 class ReplyException : Exception {
@@ -110,9 +138,13 @@ class ReplyException : Exception {
     constructor(cause : ApiError) : this("Api exception occurred", cause)
 }
 
-abstract class Block(val type: BlockType, val count: Int) {
+abstract class Block(val type: BlockType) {
 
     abstract fun write(dos: DataOutput)
+
+    abstract fun count(): Int
+
+    abstract fun printNumbers() : String
 
     fun <T> write(dos: DataOutput, item: T) {
         when (item) {
@@ -124,13 +156,9 @@ abstract class Block(val type: BlockType, val count: Int) {
         }
     }
 
-    private val TWO_COMPLEMENT: BigInteger = BigInteger.ONE.shiftLeft(64);
-    private val MAX_LONG_BI: BigInteger = BigInteger.valueOf(Long.MAX_VALUE);
-
     internal fun writeBigInteger(dos: DataOutput, item: BigInteger) {
         if (type == BlockType.U64Dense || type == BlockType.U64Sparse) {
-            val bi = if (item <= MAX_LONG_BI) {item} else { item - TWO_COMPLEMENT }
-            dos.writeLong(bi.longValueExact())
+            MessageBuilder.writeU64(dos, item)
         } else {
             throw RuntimeException("Cannot serialize BigInteger for types other then U64Dense and U64Sparse")
         }
@@ -140,11 +168,11 @@ abstract class Block(val type: BlockType, val count: Int) {
 open class DenseBlock<T> : Block {
     val data: ArrayList<T>
 
-    private constructor(type: BlockType, data: ArrayList<T>) : super(type, data.size) { this.data = data}
+    private constructor(type: BlockType, data: ArrayList<T>) : super(type) { this.data = data}
     constructor(type: BlockType, size: Int): this(type = type, data = ArrayList<T>(size))
     {
-        if (size <= 0) {
-            throw IllegalArgumentException("Data size must be positive")
+        if (size < 0) {
+            throw IllegalArgumentException("Data size must not be negative")
         }
 
         when(type) {
@@ -177,6 +205,16 @@ open class DenseBlock<T> : Block {
     }
 
     override fun toString(): String = "$data"
+
+    override fun count(): Int = data.size
+
+    override fun printNumbers(): String {
+        return if (data.isEmpty()) {
+            "Empty"
+        } else {
+            data.drop(1).fold("${data[0]}", {str, num -> "$str, $num" })
+        }
+    }
 }
 
 class SparseBlock<T> : Block
@@ -186,7 +224,7 @@ class SparseBlock<T> : Block
     val valueData: MutableList<T>
 
     private constructor(type: BlockType, offsetData: MutableList<Int>, valueData: MutableList<T>)
-        : super(type, offsetData.size)
+        : super(type)
     {
         this.offsetData = offsetData
         this.valueData = valueData
@@ -244,6 +282,12 @@ class SparseBlock<T> : Block
             write(dos, item)
         }
     }
+
+    override fun count(): Int = offsetData.size
+
+    override fun printNumbers(): String =
+            offsetData.zip(valueData)
+                    .fold("", {str, (o, v) -> "$str, $o/$v" })
 }
 
 class StringBlock : Block
@@ -259,7 +303,7 @@ class StringBlock : Block
     private var currentPosition = 0
 
     private constructor(offsetData: MutableList<Int>, valueStartPositions: MutableList<Long>)
-        : super(BlockType.String, offsetData.size) {
+        : super(BlockType.String) {
         this.offsetData = offsetData
         this.valueStartPositions = valueStartPositions
     }
@@ -294,4 +338,8 @@ class StringBlock : Block
         offsetData.add(offset)
         valueStartPositions.add(value)
     }
+
+    override fun count(): Int = offsetData.size
+
+    override fun printNumbers(): String = "Not implemented"
 }

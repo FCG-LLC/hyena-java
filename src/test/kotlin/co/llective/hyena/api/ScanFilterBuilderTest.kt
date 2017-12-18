@@ -10,32 +10,53 @@ import org.jetbrains.spek.api.dsl.it
 object ScanFilterBuilderTest : Spek({
     describe("ScanFilterBuilder") {
         it("Creates ScanFilter") {
-            val filter1 = ScanFilterBuilder()
+            val filter1 = ScanFilterBuilder(Catalog())
                     .withColumn(10)
                     .withOp(ScanComparison.Lt)
-                    .withLongValue(100)
+                    .withValue(100)
                     .build()
 
-            assert.that(filter1.column, equalTo(10))
+            assert.that(filter1.column, equalTo(10L))
             assert.that(filter1.op, equalTo(ScanComparison.Lt))
-            assert.that(filter1.value, equalTo(100L))
+            assert.that(filter1.value, equalTo(100 as Any))
             assert.that(filter1.strValue.isPresent, equalTo(false))
 
-            val filter2 = ScanFilterBuilder()
+            val filter2 = ScanFilterBuilder(Catalog())
                     .withColumn(10)
                     .withOp(ScanComparison.Lt)
                     .withStringValue("a value")
                     .build()
 
-            assert.that(filter2.column, equalTo(10))
+            assert.that(filter2.column, equalTo(10L))
             assert.that(filter2.op, equalTo(ScanComparison.Lt))
-            assert.that(filter2.value, equalTo(0L))
+            assert.that(filter2.value, equalTo(0 as Any))
             assert.that(filter2.strValue.isPresent, equalTo(true))
             assert.that(filter2.strValue.get(), equalTo<String?>("a value"))
         }
 
+        it("determines correctly filter type on given column") {
+            val columnId : Long = 1
+            val column = Column(BlockType.I64Sparse, columnId, "column name")
+            val filter = ScanFilterBuilder(Catalog(arrayListOf(column)))
+                    .withColumn(columnId)
+                    .withOp(ScanComparison.Eq)
+                    .withValue(1)
+                    .build()
+
+            assert.that(filter.type, equalTo(FilterType.I64))
+        }
+
+        it("throws when column not specified in catalog") {
+            val filterBuilder = ScanFilterBuilder(Catalog())
+                    .withColumn(1)
+                    .withOp(ScanComparison.Lt)
+                    .withValue(1)
+
+            assert.that({filterBuilder.build()}, throws<RuntimeException>())
+        }
+
         it("throws when filter value not provided") {
-            val filter = ScanFilterBuilder()
+            val filter = ScanFilterBuilder(Catalog())
                     .withColumn(10)
                     .withOp(ScanComparison.Lt)
 
@@ -43,15 +64,15 @@ object ScanFilterBuilderTest : Spek({
         }
 
         it("throws when column not provided") {
-            val filter = ScanFilterBuilder()
+            val filter = ScanFilterBuilder(Catalog())
                     .withOp(ScanComparison.Lt)
-                    .withLongValue(100L)
+                    .withValue(100L)
 
             assert.that({filter.build()}, throws<RuntimeException>())
         }
 
         it("throws when operation not provided") {
-            val filter = ScanFilterBuilder()
+            val filter = ScanFilterBuilder(Catalog())
                     .withColumn(10)
                     .withStringValue("a value")
 

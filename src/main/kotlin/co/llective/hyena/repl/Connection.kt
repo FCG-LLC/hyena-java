@@ -29,7 +29,14 @@ class Connection(address: String) {
 
     fun scan(request: ScanRequest) {
         val result = hyena.scan(request, null)
-        println("Hyena returned ${result.rowCount} rows")
+        val maxrow = result.data
+                .filter({d -> d.data.isPresent()})
+                .map({d -> d.data.get().block.count()})
+                .max()
+        println("Hyena returned $maxrow rows")
+        for (res in result.data) {
+            println("${res}")
+        }
     }
 
     fun getCatalog() {

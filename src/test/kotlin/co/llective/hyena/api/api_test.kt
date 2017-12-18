@@ -18,7 +18,15 @@ import java.math.BigInteger
 import java.nio.ByteBuffer
 
 object BlockTest : Spek({
-    class TestBlock(type: BlockType) : Block(type, 0) {
+    class TestBlock(type: BlockType) : Block(type) {
+        override fun printNumbers(): String {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun count(): Int {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
         override fun write(dos: DataOutput) { /* do noting */ }
     }
 
@@ -63,10 +71,7 @@ object DenseBlockTest : Spek({
                     throws<IllegalArgumentException>())
             }
 
-            it("Cannot be created with zero or negative size") {
-                assert.that(
-                    { DenseBlock<Int>(BlockType.I32Dense, 0) },
-                    throws<IllegalArgumentException>())
+            it("Cannot be created with negative size") {
                 assert.that(
                     { DenseBlock<Int>(BlockType.I32Dense, -16) },
                     throws<IllegalArgumentException>())
