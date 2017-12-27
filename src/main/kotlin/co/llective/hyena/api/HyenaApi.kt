@@ -107,6 +107,7 @@ open internal class HyenaConnection(private val s: Socket = ReqSocket(), private
     }
 
     @Throws(IOException::class, DeserializationException::class)
+    @Synchronized
     open fun sendAndReceive(message: ByteArray): Reply {
         ensureConnected()
 
