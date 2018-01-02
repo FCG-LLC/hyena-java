@@ -101,15 +101,15 @@ open class HyenaApi internal constructor(private val connection: HyenaConnection
 
 open internal class HyenaConnection(private val s: Socket = ReqSocket(), private var connected: Boolean = false) {
 
-    @Synchronized
     internal open fun ensureConnected() {
-        if (!connected) {
-            throw IOException("Hyena must be connected first!")
+        synchronized(lock) {
+            if (!connected) {
+                throw IOException("Hyena must be connected first!")
+            }
         }
     }
 
     @Throws(IOException::class, DeserializationException::class)
-    @Synchronized
     open fun sendAndReceive(message: ByteArray): Reply {
         ensureConnected()
 
@@ -127,17 +127,21 @@ open internal class HyenaConnection(private val s: Socket = ReqSocket(), private
 
     @Throws(IOException::class)
     internal fun connect(url: String) {
-        log.info("Opening new connection to: " + url)
-        s.setRecvTimeout(60000)
-        s.setSendTimeout(60000)
-        s.connect(url)
-        log.info("Connection successfully opened")
-        this.connected = true
+        synchronized(lock) {
+            log.info("Opening new connection to: " + url)
+            s.setRecvTimeout(60000)
+            s.setSendTimeout(60000)
+            s.connect(url)
+            log.info("Connection successfully opened")
+            this.connected = true
+        }
     }
 
     @Throws(IOException::class)
     internal fun finalize() {
-        s.close()
+        synchronized(lock) {
+            s.close()
+        }
     }
 
     companion object {
