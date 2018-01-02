@@ -5,6 +5,7 @@ import nanomsg.Nanomsg
 import nanomsg.Socket
 import nanomsg.reqrep.ReqSocket
 import java.io.IOException
+import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.util.*
 
@@ -99,6 +100,7 @@ open class HyenaApi internal constructor(private val connection: HyenaConnection
 }
 
 open internal class HyenaConnection(private val s: Socket = ReqSocket(), private var connected: Boolean = false) {
+
     @Synchronized
     internal open fun ensureConnected() {
         if (!connected) {
@@ -112,9 +114,12 @@ open internal class HyenaConnection(private val s: Socket = ReqSocket(), private
         ensureConnected()
 
         try {
-            s.send(message)
-            val replyBuf = s.recv()
-            return MessageDecoder.decode(replyBuf)
+            var replyBuf : ByteBuffer? = null
+            synchronized(lock) {
+                s.send(message)
+                replyBuf = s.recv()
+            }
+            return MessageDecoder.decode(replyBuf!!)
         } catch (exc: IOException) {
             throw IOException("Nanomsg error: " + Nanomsg.getError(), exc)
         }
@@ -137,5 +142,6 @@ open internal class HyenaConnection(private val s: Socket = ReqSocket(), private
 
     companion object {
         private val log = Logger.get(HyenaConnection::class.java)
+        private val lock = Object()
     }
 }
