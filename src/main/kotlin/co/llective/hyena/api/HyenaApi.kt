@@ -5,6 +5,7 @@ import nanomsg.Nanomsg
 import nanomsg.Socket
 import nanomsg.reqrep.ReqSocket
 import java.io.IOException
+import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.util.*
 
@@ -99,22 +100,26 @@ open class HyenaApi internal constructor(private val connection: HyenaConnection
 }
 
 open internal class HyenaConnection(private val s: Socket = ReqSocket(), private var connected: Boolean = false) {
-    @Synchronized
+
     internal open fun ensureConnected() {
-        if (!connected) {
-            throw IOException("Hyena must be connected first!")
+        synchronized(lock) {
+            if (!connected) {
+                throw IOException("Hyena must be connected first!")
+            }
         }
     }
 
     @Throws(IOException::class, DeserializationException::class)
-    @Synchronized
     open fun sendAndReceive(message: ByteArray): Reply {
         ensureConnected()
 
         try {
-            s.send(message)
-            val replyBuf = s.recv()
-            return MessageDecoder.decode(replyBuf)
+            var replyBuf : ByteBuffer? = null
+            synchronized(lock) {
+                s.send(message)
+                replyBuf = s.recv()
+            }
+            return MessageDecoder.decode(replyBuf!!)
         } catch (exc: IOException) {
             throw IOException("Nanomsg error: " + Nanomsg.getError(), exc)
         }
@@ -122,20 +127,25 @@ open internal class HyenaConnection(private val s: Socket = ReqSocket(), private
 
     @Throws(IOException::class)
     internal fun connect(url: String) {
-        log.info("Opening new connection to: " + url)
-        s.setRecvTimeout(60000)
-        s.setSendTimeout(60000)
-        s.connect(url)
-        log.info("Connection successfully opened")
-        this.connected = true
+        synchronized(lock) {
+            log.info("Opening new connection to: " + url)
+            s.setRecvTimeout(60000)
+            s.setSendTimeout(60000)
+            s.connect(url)
+            log.info("Connection successfully opened")
+            this.connected = true
+        }
     }
 
     @Throws(IOException::class)
     internal fun finalize() {
-        s.close()
+        synchronized(lock) {
+            s.close()
+        }
     }
 
     companion object {
         private val log = Logger.get(HyenaConnection::class.java)
+        private val lock = Object()
     }
 }
