@@ -1,7 +1,9 @@
 package co.llective.hyena.api
 
 import com.google.common.io.LittleEndianDataOutputStream
-import java.io.*
+import java.io.ByteArrayOutputStream
+import java.io.DataOutput
+import java.io.IOException
 import java.math.BigInteger
 import java.util.UUID
 
@@ -52,7 +54,18 @@ object MessageBuilder {
 
         dos.writeLong(req.minTs)
         dos.writeLong(req.maxTs)
-        writeUUID(dos, req.partitionId)
+
+        if (req.partitionIds != null) {
+            dos.writeBoolean(true)
+            val partitionIds = req.partitionIds!!
+            dos.writeLong(partitionIds.size.toLong())
+            for (i in 0 until partitionIds.size) {
+                writeUUID(dos, partitionIds.elementAt(i))
+            }
+        } else {
+            dos.writeBoolean(false)
+        }
+
         writeLongList(dos, req.projection)
 
         dos.writeLong(req.filters.size.toLong())
