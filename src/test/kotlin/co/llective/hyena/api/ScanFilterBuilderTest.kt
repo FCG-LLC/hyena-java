@@ -10,8 +10,10 @@ import org.jetbrains.spek.api.dsl.it
 object ScanFilterBuilderTest : Spek({
     describe("ScanFilterBuilder") {
         it("Creates ScanFilter") {
-            val filter1 = ScanFilterBuilder(Catalog())
-                    .withColumn(10)
+            val column = Column(BlockType.U32Dense, 10, "name")
+            val catalog = Catalog(arrayListOf(column))
+            val filter1 = ScanFilterBuilder(catalog)
+                    .withColumn(column.id)
                     .withOp(ScanComparison.Lt)
                     .withValue(100)
                     .build()
@@ -21,8 +23,8 @@ object ScanFilterBuilderTest : Spek({
             assert.that(filter1.value, equalTo(100 as Any))
             assert.that(filter1.strValue.isPresent, equalTo(false))
 
-            val filter2 = ScanFilterBuilder(Catalog())
-                    .withColumn(10)
+            val filter2 = ScanFilterBuilder(catalog)
+                    .withColumn(column.id)
                     .withOp(ScanComparison.Lt)
                     .withStringValue("a value")
                     .build()
