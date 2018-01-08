@@ -55,16 +55,7 @@ object MessageBuilder {
         dos.writeLong(req.minTs)
         dos.writeLong(req.maxTs)
 
-        if (req.partitionIds != null) {
-            dos.writeBoolean(true)
-            val partitionIds = req.partitionIds!!
-            dos.writeLong(partitionIds.size.toLong())
-            for (i in 0 until partitionIds.size) {
-                writeUUID(dos, partitionIds.elementAt(i))
-            }
-        } else {
-            dos.writeBoolean(false)
-        }
+        writeNullable(dos, req.partitionIds, this::writeUUIDCollection)
 
         writeLongList(dos, req.projection)
 
@@ -74,8 +65,23 @@ object MessageBuilder {
         }
 
         baos.close()
-
         return baos.toByteArray()
+    }
+
+    private fun writeUUIDCollection(dos: DataOutput, partitionIds: Set<UUID>) {
+        dos.writeLong(partitionIds.size.toLong())
+        for (partitionId in partitionIds) {
+            writeUUID(dos, partitionId)
+        }
+    }
+
+    private fun <T> writeNullable(dos: DataOutput, nullable: T?, writeContent: (DataOutput, T) -> Unit) {
+        if (nullable != null) {
+            dos.writeBoolean(true)
+            writeContent(dos, nullable)
+        } else {
+            dos.writeBoolean(false)
+        }
     }
 
     @Throws(IOException::class)
