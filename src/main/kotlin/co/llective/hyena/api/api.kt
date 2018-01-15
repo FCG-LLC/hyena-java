@@ -5,7 +5,10 @@ import org.apache.commons.lang3.StringUtils
 import java.io.DataOutput
 import java.lang.IllegalArgumentException
 import java.math.BigInteger
-import java.util.*
+import java.util.ArrayList
+import java.util.Arrays
+import java.util.Optional
+import java.util.UUID
 
 enum class ApiRequest {
     ListColumns,
@@ -74,7 +77,7 @@ enum class FilterType {
 
 data class ScanRequest(var minTs: Long = 0,
                        var maxTs: Long = 0,
-                       var partitionId: UUID = UUID.randomUUID(),
+                       var partitionIds: Set<UUID>? = null,
                        var filters: List<ScanFilter> = arrayListOf(),
                        var projection: List<Long> = arrayListOf())
 

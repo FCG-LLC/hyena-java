@@ -1,7 +1,9 @@
 package co.llective.hyena.api
 
 import com.google.common.io.LittleEndianDataOutputStream
-import java.io.*
+import java.io.ByteArrayOutputStream
+import java.io.DataOutput
+import java.io.IOException
 import java.math.BigInteger
 import java.util.UUID
 
@@ -52,7 +54,9 @@ object MessageBuilder {
 
         dos.writeLong(req.minTs)
         dos.writeLong(req.maxTs)
-        writeUUID(dos, req.partitionId)
+
+        writeNullable(dos, req.partitionIds, this::writeUUIDCollection)
+
         writeLongList(dos, req.projection)
 
         dos.writeLong(req.filters.size.toLong())
@@ -61,8 +65,23 @@ object MessageBuilder {
         }
 
         baos.close()
-
         return baos.toByteArray()
+    }
+
+    private fun writeUUIDCollection(dos: DataOutput, partitionIds: Set<UUID>) {
+        dos.writeLong(partitionIds.size.toLong())
+        for (partitionId in partitionIds) {
+            writeUUID(dos, partitionId)
+        }
+    }
+
+    private fun <T> writeNullable(dos: DataOutput, nullable: T?, writeContent: (DataOutput, T) -> Unit) {
+        if (nullable != null) {
+            dos.writeBoolean(true)
+            writeContent(dos, nullable)
+        } else {
+            dos.writeBoolean(false)
+        }
     }
 
     @Throws(IOException::class)

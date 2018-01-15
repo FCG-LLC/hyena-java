@@ -11,7 +11,8 @@ import com.nhaarman.mockito_kotlin.mock
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
-import java.util.*
+import java.util.Optional
+import java.util.UUID
 
 object HyenaApiTest : Spek({
     describe("List columns") {
@@ -148,7 +149,10 @@ object HyenaApiTest : Spek({
             doNothing().`when`(connection).ensureConnected()
             val sut = HyenaApi(connection)
 
-            val req = ScanRequest(0, 10, UUID.randomUUID(), listOf(), listOf())
+            val partitionIds = HashSet<UUID>()
+            partitionIds.add(UUID.randomUUID())
+
+            val req = ScanRequest(0, 10, partitionIds, listOf(), listOf())
             assert.that({sut.scan(req, null)}, throws<ReplyException>())
         }
 
@@ -160,7 +164,10 @@ object HyenaApiTest : Spek({
             doNothing().`when`(connection).ensureConnected()
             val sut = HyenaApi(connection)
 
-            val req = ScanRequest(0, 10, UUID.randomUUID(), listOf(), listOf())
+            val partitionIds = HashSet<UUID>()
+            partitionIds.add(UUID.randomUUID())
+
+            val req = ScanRequest(0, 10, partitionIds, listOf(), listOf())
             val reply = sut.scan(req, null)
             assert.that(scanResult, sameInstance(reply))
         }
