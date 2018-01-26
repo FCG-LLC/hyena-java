@@ -55,7 +55,7 @@ object MessageBuilder {
         dos.writeLong(req.minTs)
         dos.writeLong(req.maxTs)
 
-        writeNullable(dos, req.partitionIds, this::writeUUIDCollection)
+        writeUUIDCollection(dos, req.partitionIds);
 
         writeLongList(dos, req.projection)
 
