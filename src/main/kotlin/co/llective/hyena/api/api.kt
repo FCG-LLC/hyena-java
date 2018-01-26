@@ -77,7 +77,7 @@ enum class FilterType {
 
 data class ScanRequest(var minTs: Long = 0,
                        var maxTs: Long = 0,
-                       var partitionIds: Set<UUID>? = null,
+                       var partitionIds: Set<UUID> = hashSetOf(),
                        var filters: List<ScanFilter> = arrayListOf(),
                        var projection: List<Long> = arrayListOf())
 

@@ -43,7 +43,6 @@ object MessageBuilderTest : Spek({
           ApiRequest.Scan.ordinal.toByte(), 0, 0, 0, // 32 bits
           minTs.toByte(), 0, 0, 0, 0, 0, 0, 0, // 64 bits min-ts
           maxTs.toByte(), 0, 0, 0, 0, 0, 0, 0, // 64 bits max-ts
-          1, // boolean optional - true
           2, 0, 0, 0, 0, 0, 0, 0, // 64 bits partition ids size
           partitionId1.leastSignificantBits.toByte(), 0, 0, 0, 0, 0, 0, 0, // 64 bits uuid
           partitionId1.mostSignificantBits.toByte(), 0, 0, 0, 0, 0, 0, 0, // 64 bits uuid
@@ -68,7 +67,7 @@ object MessageBuilderTest : Spek({
 
     it("builds scan message without partitions and empty projection and filter") {
       val request = buildWholeScanRequest()
-      request.partitionIds = null
+      request.partitionIds = hashSetOf()
       request.projection = emptyList()
       request.filters = emptyList()
 
@@ -78,7 +77,7 @@ object MessageBuilderTest : Spek({
           ApiRequest.Scan.ordinal.toByte(), 0, 0, 0, // 32 bits
           minTs.toByte(), 0, 0, 0, 0, 0, 0, 0, // 64 bits min-ts
           maxTs.toByte(), 0, 0, 0, 0, 0, 0, 0, // 64 bits max-ts
-          0, // boolean optional - false
+          0, 0, 0, 0, 0, 0, 0, 0, // empty hash set
           0, 0, 0, 0, 0, 0, 0, 0, // 64 bits projection list size
           0, 0, 0, 0, 0, 0, 0, 0 // 64 bits scan filter list size
       )
