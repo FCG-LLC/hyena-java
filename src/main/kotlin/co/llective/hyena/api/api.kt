@@ -101,8 +101,11 @@ data class ScanFilter(
 data class DataTriple(val columnId: Long, val columnType: BlockType, val data: Optional<BlockHolder>) {
     override fun toString(): String {
         return "Column id $columnId $columnType, data: " +
-                if (data.isPresent()) { data.get().printNumbers() }
-                else { "None" }
+                if (data.isPresent()) {
+                    data.get().printNumbers()
+                } else {
+                    "None"
+                }
     }
 }
 
@@ -117,11 +120,9 @@ data class PartitionInfo(val minTs: Long, val maxTs: Long, val id: UUID, val loc
 }
 
 open class Catalog(val columns: List<Column> = arrayListOf(),
-              val availablePartitions: List<PartitionInfo> = arrayListOf())
-{
-    override fun toString(): String
-        = "Columns: [${StringUtils.join(columns, ", ")}], " +
-          "Partitions: [${StringUtils.join(availablePartitions, ", ")}]"
+                   val availablePartitions: List<PartitionInfo> = arrayListOf()) {
+    override fun toString(): String = "Columns: [${StringUtils.join(columns, ", ")}], " +
+            "Partitions: [${StringUtils.join(availablePartitions, ", ")}]"
 }
 
 data class ColumnData(val columnIndex: Int, val block: Block) {
@@ -137,8 +138,8 @@ data class BlockHolder(val type: BlockType, val block: Block) {
 
 class ReplyException : Exception {
     constructor(s: String) : super(s)
-    constructor(s: String, cause : ApiError) : super(s + " - " + cause.type + " (" + cause.extra.orElse(" ") + ")")
-    constructor(cause : ApiError) : this("Api exception occurred", cause)
+    constructor(s: String, cause: ApiError) : super(s + " - " + cause.type + " (" + cause.extra.orElse(" ") + ")")
+    constructor(cause: ApiError) : this("Api exception occurred", cause)
 }
 
 abstract class Block(val type: BlockType) {
@@ -147,14 +148,14 @@ abstract class Block(val type: BlockType) {
 
     abstract fun count(): Int
 
-    abstract fun printNumbers() : String
+    abstract fun printNumbers(): String
 
     fun <T> write(dos: DataOutput, item: T) {
         when (item) {
-            is Byte  -> dos.writeByte(item.toInt())
+            is Byte -> dos.writeByte(item.toInt())
             is Short -> dos.writeShort(item.toInt())
-            is Int   -> dos.writeInt(item)
-            is Long  -> dos.writeLong(item)
+            is Int -> dos.writeInt(item)
+            is Long -> dos.writeLong(item)
             is BigInteger -> writeBigInteger(dos, item)
         }
     }
@@ -171,14 +172,16 @@ abstract class Block(val type: BlockType) {
 open class DenseBlock<T> : Block {
     val data: ArrayList<T>
 
-    private constructor(type: BlockType, data: ArrayList<T>) : super(type) { this.data = data}
-    constructor(type: BlockType, size: Int): this(type = type, data = ArrayList<T>(size))
-    {
+    private constructor(type: BlockType, data: ArrayList<T>) : super(type) {
+        this.data = data
+    }
+
+    constructor(type: BlockType, size: Int) : this(type = type, data = ArrayList<T>(size)) {
         if (size < 0) {
             throw IllegalArgumentException("Data size must not be negative")
         }
 
-        when(type) {
+        when (type) {
             BlockType.I8Sparse,
             BlockType.I16Sparse,
             BlockType.I32Sparse,
@@ -190,7 +193,8 @@ open class DenseBlock<T> : Block {
                 throw IllegalArgumentException("Can't create a dense block with sparse data type")
             BlockType.String ->
                 throw IllegalArgumentException("Can't create a dense block with String data type")
-            else -> { /* OK, do nothing */ }
+            else -> { /* OK, do nothing */
+            }
         }
     }
 
@@ -215,32 +219,29 @@ open class DenseBlock<T> : Block {
         return if (data.isEmpty()) {
             "Empty"
         } else {
-            data.drop(1).fold("${data[0]}", {str, num -> "$str, $num" })
+            data.drop(1).fold("${data[0]}", { str, num -> "$str, $num" })
         }
     }
 }
 
-class SparseBlock<T> : Block
-{
+class SparseBlock<T> : Block {
     private var currentPosition = 0
     val offsetData: MutableList<Int>
     val valueData: MutableList<T>
 
     private constructor(type: BlockType, offsetData: MutableList<Int>, valueData: MutableList<T>)
-        : super(type)
-    {
+            : super(type) {
         this.offsetData = offsetData
         this.valueData = valueData
     }
 
     constructor(type: BlockType, size: Int)
-            : this(type = type, offsetData = ArrayList(size), valueData = ArrayList(size))
-    {
+            : this(type = type, offsetData = ArrayList(size), valueData = ArrayList(size)) {
         if (size <= 0) {
             throw IllegalArgumentException("Data size must be positive")
         }
 
-        when(type) {
+        when (type) {
             BlockType.I8Dense,
             BlockType.I16Dense,
             BlockType.I32Dense,
@@ -252,7 +253,8 @@ class SparseBlock<T> : Block
                 throw IllegalArgumentException("Can't create a dense block with dense data type")
             BlockType.String ->
                 throw IllegalArgumentException("Can't create a dense block with String data type")
-            else -> { /* OK, do nothing */ }
+            else -> { /* OK, do nothing */
+            }
         }
     }
 
@@ -290,11 +292,10 @@ class SparseBlock<T> : Block
 
     override fun printNumbers(): String =
             offsetData.zip(valueData)
-                    .fold("", {str, (o, v) -> "$str, $o/$v" })
+                    .fold("", { str, (o, v) -> "$str, $o/$v" })
 }
 
-class StringBlock : Block
-{
+class StringBlock : Block {
     override fun write(dos: DataOutput) {
         TODO("not implemented") //Will be implemented when Hyena handles it
     }
@@ -306,10 +307,11 @@ class StringBlock : Block
     private var currentPosition = 0
 
     private constructor(offsetData: MutableList<Int>, valueStartPositions: MutableList<Long>)
-        : super(BlockType.String) {
+            : super(BlockType.String) {
         this.offsetData = offsetData
         this.valueStartPositions = valueStartPositions
     }
+
     constructor(size: Int)
             : this(offsetData = ArrayList<Int>(size), valueStartPositions = ArrayList<Long>(size)) {
         if (size <= 0) {

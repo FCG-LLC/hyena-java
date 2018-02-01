@@ -21,6 +21,7 @@ enum class ApiErrorType(val type: ExtraType) {
         None
     }
 }
+
 data class ApiError(val type: ApiErrorType, val extra: Optional<Any>)
 
 sealed class Reply
@@ -29,4 +30,4 @@ data class AddColumnReply(val result: Either<Int, ApiError>) : Reply()
 data class InsertReply(val result: Either<Int, ApiError>) : Reply()
 data class ScanReply(val result: Either<ScanResult, ApiError>) : Reply()
 data class CatalogReply(val result: Catalog) : Reply()
-data class SerializeError(val message: String): Reply()
+data class SerializeError(val message: String) : Reply()

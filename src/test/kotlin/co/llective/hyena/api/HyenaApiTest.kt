@@ -23,7 +23,7 @@ object HyenaApiTest : Spek({
             doNothing().`when`(connection).ensureConnected()
             val sut = HyenaApi(connection)
 
-            assert.that({sut.listColumns()}, throws<ReplyException>())
+            assert.that({ sut.listColumns() }, throws<ReplyException>())
         }
 
         it("Correctly extracts the reply") {
@@ -48,7 +48,7 @@ object HyenaApiTest : Spek({
             val sut = HyenaApi(connection)
 
             val column = Column(BlockType.I32Dense, 100, "testColumn")
-            assert.that({sut.addColumn(column)}, throws<ReplyException>())
+            assert.that({ sut.addColumn(column) }, throws<ReplyException>())
         }
 
         it("Correctly extracts the reply") {
@@ -87,7 +87,7 @@ object HyenaApiTest : Spek({
             val sut = HyenaApi(connection)
 
             val data = ColumnData(100, DenseBlock<Int>(BlockType.I32Dense, 10))
-            assert.that({sut.insert(10, listOf(), data)}, throws<ReplyException>())
+            assert.that({ sut.insert(10, listOf(), data) }, throws<ReplyException>())
         }
 
         it("Correctly extracts the reply") {
@@ -125,7 +125,7 @@ object HyenaApiTest : Spek({
             doNothing().`when`(connection).ensureConnected()
             val sut = HyenaApi(connection)
 
-            assert.that({sut.refreshCatalog()}, throws<ReplyException>())
+            assert.that({ sut.refreshCatalog() }, throws<ReplyException>())
         }
 
         it("Correctly extracts the reply") {
@@ -153,7 +153,7 @@ object HyenaApiTest : Spek({
             partitionIds.add(UUID.randomUUID())
 
             val req = ScanRequest(0, 10, partitionIds, listOf(), listOf())
-            assert.that({sut.scan(req, null)}, throws<ReplyException>())
+            assert.that({ sut.scan(req, null) }, throws<ReplyException>())
         }
 
         it("Correctly extracts the reply") {
