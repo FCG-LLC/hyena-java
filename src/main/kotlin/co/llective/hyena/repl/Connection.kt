@@ -13,7 +13,7 @@ class Connection(address: String) {
         println(columns.joinToString(", "))
     }
 
-    fun addColumn(name: String, type: BlockType)  {
+    fun addColumn(name: String, type: BlockType) {
         val id = hyena.addColumn(Column(type, -1, name))
         if (id.isPresent) {
             println("Column added with id ${id.get()}")
@@ -30,8 +30,8 @@ class Connection(address: String) {
     fun scan(request: ScanRequest) {
         val result = hyena.scan(request, null)
         val maxrow = result.data
-                .filter({d -> d.data.isPresent()})
-                .map({d -> d.data.get().block.count()})
+                .filter({ d -> d.data.isPresent() })
+                .map({ d -> d.data.get().block.count() })
                 .max()
         println("Hyena returned $maxrow rows")
         for (res in result.data) {

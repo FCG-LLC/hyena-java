@@ -7,16 +7,16 @@ import java.util.*
 
 object MessageDecoder {
 
-    fun decode(buf: ByteBuffer) : Reply {
+    fun decode(buf: ByteBuffer): Reply {
         try {
             val responseType = decodeMessageType(buf)
             return decodeMessage(responseType, buf)
-        } catch (exc : RuntimeException) {
+        } catch (exc: RuntimeException) {
             throw DeserializationException(exc)
         }
     }
 
-    internal fun decodeMessageType(buf: ByteBuffer) : ApiRequest {
+    internal fun decodeMessageType(buf: ByteBuffer): ApiRequest {
         val messageTypeId = buf.int
 
         if (messageTypeId <= ApiRequest.values().size) {
@@ -26,13 +26,13 @@ object MessageDecoder {
         }
     }
 
-    private fun decodeMessage(request: ApiRequest, buf: ByteBuffer) : Reply {
-        return when(request) {
+    private fun decodeMessage(request: ApiRequest, buf: ByteBuffer): Reply {
+        return when (request) {
             ApiRequest.ListColumns -> decodeListColumn(buf)
-            ApiRequest.Insert -> InsertReply(decodeEither(buf) {b -> b.int})
+            ApiRequest.Insert -> InsertReply(decodeEither(buf) { b -> b.int })
             ApiRequest.Scan -> ScanReply(decodeEither(buf, this::decodeScanResult))
             ApiRequest.RefreshCatalog -> CatalogReply(decodeRefreshCatalog(buf))
-            ApiRequest.AddColumn -> AddColumnReply(decodeEither(buf) {b -> b.int})
+            ApiRequest.AddColumn -> AddColumnReply(decodeEither(buf) { b -> b.int })
             ApiRequest.Flush -> TODO()
             ApiRequest.DataCompaction -> TODO()
             ApiRequest.SerializeError -> SerializeError(decoderSerializeError(buf))
@@ -115,7 +115,7 @@ object MessageDecoder {
         }
     }
 
-    private fun decodeListColumn(buf: ByteBuffer) : ListColumnsReply {
+    private fun decodeListColumn(buf: ByteBuffer): ListColumnsReply {
         val columnCount = buf.long.toInt()
         val columns = ArrayList<Column>()
         for (i in 0 until columnCount) {
@@ -151,21 +151,21 @@ object MessageDecoder {
         val type = BlockType.values()[buf.int]
         val recordsCount = buf.long.toInt()
 
-        val block = when(type) {
+        val block = when (type) {
             BlockType.String -> StringBlock(recordsCount)
-            BlockType.I8Dense  -> DenseBlock<Byte>(type, recordsCount)
+            BlockType.I8Dense -> DenseBlock<Byte>(type, recordsCount)
             BlockType.I16Dense -> DenseBlock<Short>(type, recordsCount)
             BlockType.I32Dense -> DenseBlock<Int>(type, recordsCount)
             BlockType.I64Dense -> DenseBlock<Long>(type, recordsCount)
-            BlockType.U8Dense  -> DenseBlock<Short>(type, recordsCount)
+            BlockType.U8Dense -> DenseBlock<Short>(type, recordsCount)
             BlockType.U16Dense -> DenseBlock<Int>(type, recordsCount)
             BlockType.U32Dense -> DenseBlock<Long>(type, recordsCount)
             BlockType.U64Dense -> DenseBlock<BigInteger>(type, recordsCount)
-            BlockType.I8Sparse  -> SparseBlock<Byte>(type, recordsCount)
+            BlockType.I8Sparse -> SparseBlock<Byte>(type, recordsCount)
             BlockType.I16Sparse -> SparseBlock<Short>(type, recordsCount)
             BlockType.I32Sparse -> SparseBlock<Int>(type, recordsCount)
             BlockType.I64Sparse -> SparseBlock<Long>(type, recordsCount)
-            BlockType.U8Sparse  -> SparseBlock<Short>(type, recordsCount)
+            BlockType.U8Sparse -> SparseBlock<Short>(type, recordsCount)
             BlockType.U16Sparse -> SparseBlock<Int>(type, recordsCount)
             BlockType.U32Sparse -> SparseBlock<Long>(type, recordsCount)
             BlockType.U64Sparse -> SparseBlock<BigInteger>(type, recordsCount)
@@ -178,22 +178,22 @@ object MessageDecoder {
         for (i in 0 until recordsCount) {
             when (type) {
                 BlockType.String -> (block as StringBlock).add(buf.int, buf.long)
-                BlockType.I8Dense -> (block as DenseBlock<*>).add(buf.get())
-                BlockType.I16Dense -> (block as DenseBlock<*>).add(buf.short)
-                BlockType.I32Dense -> (block as DenseBlock<*>).add(buf.int)
-                BlockType.I64Dense -> (block as DenseBlock<*>).add(buf.long)
-                BlockType.U8Dense -> (block as DenseBlock<*>).add(buf.short)
-                BlockType.U16Dense -> (block as DenseBlock<*>).add(buf.int)
-                BlockType.U32Dense -> (block as DenseBlock<*>).add(buf.long)
-                BlockType.U64Dense -> (block as DenseBlock<*>).add(decodeBigInt(buf.long))
-                BlockType.I8Sparse -> (block as SparseBlock<*>).add(buf.int, buf.get())
-                BlockType.I16Sparse -> (block as SparseBlock<*>).add(buf.int, buf.short)
-                BlockType.I32Sparse -> (block as SparseBlock<*>).add(buf.int, buf.int)
-                BlockType.I64Sparse -> (block as SparseBlock<*>).add(buf.int, buf.long)
-                BlockType.U8Sparse -> (block as SparseBlock<*>).add(buf.int, buf.short)
-                BlockType.U16Sparse -> (block as SparseBlock<*>).add(buf.int, buf.int)
-                BlockType.U32Sparse -> (block as SparseBlock<*>).add(buf.int, buf.long)
-                BlockType.U64Sparse -> (block as SparseBlock<*>).add(buf.int, decodeBigInt(buf.long))
+                BlockType.I8Dense -> (block as DenseBlock<Byte>).add(buf.get())
+                BlockType.I16Dense -> (block as DenseBlock<Short>).add(buf.short)
+                BlockType.I32Dense -> (block as DenseBlock<Int>).add(buf.int)
+                BlockType.I64Dense -> (block as DenseBlock<Long>).add(buf.long)
+                BlockType.U8Dense -> (block as DenseBlock<Short>).add(buf.get().toShort())
+                BlockType.U16Dense -> (block as DenseBlock<Int>).add(buf.short.toInt())
+                BlockType.U32Dense -> (block as DenseBlock<Long>).add(buf.int.toLong())
+                BlockType.U64Dense -> (block as DenseBlock<BigInteger>).add(decodeBigInt(buf.long))
+                BlockType.I8Sparse -> (block as SparseBlock<Byte>).add(buf.int, buf.get())
+                BlockType.I16Sparse -> (block as SparseBlock<Short>).add(buf.int, buf.short)
+                BlockType.I32Sparse -> (block as SparseBlock<Int>).add(buf.int, buf.int)
+                BlockType.I64Sparse -> (block as SparseBlock<Long>).add(buf.int, buf.long)
+                BlockType.U8Sparse -> (block as SparseBlock<Short>).add(buf.int, buf.get().toShort())
+                BlockType.U16Sparse -> (block as SparseBlock<Int>).add(buf.int, buf.short.toInt())
+                BlockType.U32Sparse -> (block as SparseBlock<Long>).add(buf.int, buf.int.toLong())
+                BlockType.U64Sparse -> (block as SparseBlock<BigInteger>).add(buf.int, decodeBigInt(buf.long))
                 BlockType.I128Dense -> TODO()
                 BlockType.U128Dense -> TODO()
                 BlockType.I128Sparse -> TODO()
@@ -222,7 +222,7 @@ object MessageDecoder {
 }
 
 class DeserializationException : Exception {
-    constructor(msg : String) : super(msg)
-    constructor(msg : String, cause : Exception) : super(msg, cause)
-    constructor(cause : Exception) : this("Error during deserialization occurred", cause)
+    constructor(msg: String) : super(msg)
+    constructor(msg: String, cause: Exception) : super(msg, cause)
+    constructor(cause: Exception) : this("Error during deserialization occurred", cause)
 }

@@ -37,7 +37,7 @@ object ScanFilterBuilderTest : Spek({
         }
 
         it("determines correctly filter type on given column") {
-            val columnId : Long = 1
+            val columnId: Long = 1
             val column = Column(BlockType.I64Sparse, columnId, "column name")
             val filter = ScanFilterBuilder(Catalog(arrayListOf(column)))
                     .withColumn(columnId)
@@ -54,7 +54,7 @@ object ScanFilterBuilderTest : Spek({
                     .withOp(ScanComparison.Lt)
                     .withValue(1)
 
-            assert.that({filterBuilder.build()}, throws<RuntimeException>())
+            assert.that({ filterBuilder.build() }, throws<RuntimeException>())
         }
 
         it("throws when filter value not provided") {
@@ -62,7 +62,7 @@ object ScanFilterBuilderTest : Spek({
                     .withColumn(10)
                     .withOp(ScanComparison.Lt)
 
-            assert.that({filter.build()}, throws<RuntimeException>())
+            assert.that({ filter.build() }, throws<RuntimeException>())
         }
 
         it("throws when column not provided") {
@@ -70,7 +70,7 @@ object ScanFilterBuilderTest : Spek({
                     .withOp(ScanComparison.Lt)
                     .withValue(100L)
 
-            assert.that({filter.build()}, throws<RuntimeException>())
+            assert.that({ filter.build() }, throws<RuntimeException>())
         }
 
         it("throws when operation not provided") {
@@ -78,7 +78,7 @@ object ScanFilterBuilderTest : Spek({
                     .withColumn(10)
                     .withStringValue("a value")
 
-            assert.that({filter.build()}, throws<RuntimeException>())
+            assert.that({ filter.build() }, throws<RuntimeException>())
         }
     }
 })

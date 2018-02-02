@@ -149,19 +149,23 @@ object MessageBuilder {
     private val MAX_LONG_BI: BigInteger = BigInteger.valueOf(Long.MAX_VALUE)
 
     internal fun writeU64(dos: DataOutput, value: BigInteger) {
-        val bi = if (value <= MAX_LONG_BI) {value} else { value - TWO_COMPLEMENT }
+        val bi = if (value <= MAX_LONG_BI) {
+            value
+        } else {
+            value - TWO_COMPLEMENT
+        }
         dos.writeLong(bi.longValueExact())
     }
 
     private fun writeFilterValue(dos: DataOutput, filter: ScanFilter) {
         dos.writeInt(filter.type.ordinal)
-        when(filter.type) {
-            FilterType.I8  -> dos.writeByte(filter.value as Int)
+        when (filter.type) {
+            FilterType.I8 -> dos.writeByte(filter.value as Int)
             FilterType.I16 -> dos.writeShort(filter.value as Int)
             FilterType.I32 -> dos.writeInt(filter.value as Int)
             FilterType.I64 -> dos.writeLong(filter.value as Long)
 
-            FilterType.U8  -> dos.writeShort(filter.value as Int)
+            FilterType.U8 -> dos.writeShort(filter.value as Int)
             FilterType.U16 -> dos.writeInt(filter.value as Int)
             FilterType.U32 -> dos.writeLong(filter.value as Long)
             FilterType.U64 -> writeU64(dos, BigInteger.valueOf(filter.value as Long))

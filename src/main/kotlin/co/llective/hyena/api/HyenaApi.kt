@@ -9,7 +9,7 @@ import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.util.*
 
-open class HyenaApi internal constructor(private val connection: HyenaConnection){
+open class HyenaApi internal constructor(private val connection: HyenaConnection) {
     constructor() : this(HyenaConnection())
 
     @Throws(IOException::class)
@@ -36,16 +36,16 @@ open class HyenaApi internal constructor(private val connection: HyenaConnection
     }
 
     @Throws(IOException::class, ReplyException::class)
-    fun listColumns() : List<Column> {
+    fun listColumns(): List<Column> {
         val message = MessageBuilder.buildListColumnsMessage()
         return makeApiCall(message, ListColumnsReply::class.java) { reply -> reply.columns }
     }
 
     @Throws(IOException::class, ReplyException::class)
-    fun addColumn(column: Column) : Optional<Int> {
+    fun addColumn(column: Column): Optional<Int> {
         val message = MessageBuilder.buildAddColumnMessage(column)
-        return makeApiCall(message, AddColumnReply::class.java) {
-            reply -> when (reply.result) {
+        return makeApiCall(message, AddColumnReply::class.java) { reply ->
+            when (reply.result) {
                 is Left -> Optional.of(reply.result.value)
                 is Right -> {
                     log.error("Could not add column: ${reply.result.value}")
@@ -56,7 +56,7 @@ open class HyenaApi internal constructor(private val connection: HyenaConnection
     }
 
     @Throws(IOException::class, ReplyException::class)
-    fun insert(source: Int, timestamps: List<Long>, vararg columnData: ColumnData) : Optional<Int> {
+    fun insert(source: Int, timestamps: List<Long>, vararg columnData: ColumnData): Optional<Int> {
         val message = MessageBuilder.buildInsertMessage(source, timestamps, *columnData)
         return makeApiCall(message, InsertReply::class.java) { reply ->
             when (reply.result) {
@@ -73,7 +73,7 @@ open class HyenaApi internal constructor(private val connection: HyenaConnection
     fun scan(req: ScanRequest, metaOrNull: HyenaOpMetadata?): ScanResult {
         val message = MessageBuilder.buildScanMessage(req)
         return makeApiCall(message, ScanReply::class.java) { reply ->
-            when(reply.result) {
+            when (reply.result) {
                 is Left -> reply.result.value
                 is Right -> {
                     throw ReplyException(reply.result.value)
@@ -114,7 +114,7 @@ open internal class HyenaConnection(private val s: Socket = ReqSocket(), private
         ensureConnected()
 
         try {
-            var replyBuf : ByteBuffer? = null
+            var replyBuf: ByteBuffer? = null
             synchronized(lock) {
                 s.send(message)
                 replyBuf = s.recv()

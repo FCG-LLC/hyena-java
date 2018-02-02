@@ -31,8 +31,8 @@ object MessageDecoderTest : Spek({
             byteBuffer.position(0) //reset position
 
             assert.that(
-                {MessageDecoder.decodeMessageType(byteBuffer)},
-                throws<DeserializationException>()
+                    { MessageDecoder.decodeMessageType(byteBuffer) },
+                    throws<DeserializationException>()
             )
         }
     }
