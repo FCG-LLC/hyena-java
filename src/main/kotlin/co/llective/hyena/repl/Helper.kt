@@ -2,8 +2,7 @@ package co.llective.hyena.repl
 
 import co.llective.hyena.api.*
 import java.math.BigInteger
-import java.util.Random
-import java.util.ArrayList
+import java.util.*
 
 /** This object contains a set of utility function to help play with the REPL */
 object Helper {
@@ -44,22 +43,22 @@ object Helper {
         val block: SparseBlock<*> = createBlock(n, type) as SparseBlock<*>
         val generator = Random()
         val offsets = (0 until n).map { generator.nextInt(Int.MAX_VALUE) }
-        offsets.sorted().forEach { offset ->
-            block.add(
-                    offset,
-                    when (type) {
-                        BlockType.I8Sparse -> (generator.nextInt(256) - 128).toByte()
-                        BlockType.I16Sparse -> (generator.nextInt(65536) - 32768).toShort()
-                        BlockType.I32Sparse -> generator.nextInt()
-                        BlockType.I64Sparse -> generator.nextLong()
-                        BlockType.U8Sparse -> generator.nextInt(256)
-                        BlockType.U16Sparse -> generator.nextInt(65536)
-                        BlockType.U32Sparse -> generator.nextInt(Int.MAX_VALUE)
-                        BlockType.U64Sparse -> Math.abs(generator.nextLong())
-                        else ->
-                            throw IllegalArgumentException("randomSparseColumn cannot be used to build dense or String column")
-                    })
-        }
+//        offsets.sorted().forEach { offset ->
+//            block.add(
+//                    offset,
+//                    when (type) {
+//                        BlockType.I8Sparse -> (generator.nextInt(256) - 128).toByte()
+//                        BlockType.I16Sparse -> (generator.nextInt(65536) - 32768).toShort()
+//                        BlockType.I32Sparse -> generator.nextInt()
+//                        BlockType.I64Sparse -> generator.nextLong()
+//                        BlockType.U8Sparse -> generator.nextInt(256)
+//                        BlockType.U16Sparse -> generator.nextInt(65536)
+//                        BlockType.U32Sparse -> generator.nextInt(Int.MAX_VALUE)
+//                        BlockType.U64Sparse -> Math.abs(generator.nextLong())
+//                        else ->
+//                            throw IllegalArgumentException("randomSparseColumn cannot be used to build dense or String column")
+//                    })
+//        }
 
         return block
     }
