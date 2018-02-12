@@ -39,28 +39,45 @@ object Helper {
     }
 
     @JvmStatic
-    fun randomSparseBlock(n: Int, type: BlockType): Block {
-        val block: SparseBlock<*> = createBlock(n, type) as SparseBlock<*>
+    fun randomSparseBlock(n: Int, type: BlockType): SparseBlock<*> {
+        val sparseBlock = when (type) {
+            BlockType.I8Sparse -> SparseBlock<Byte>(type, n)
+            BlockType.I16Sparse -> SparseBlock<Short>(type, n)
+            BlockType.I32Sparse -> SparseBlock<Int>(type, n)
+            BlockType.I64Sparse -> SparseBlock<Long>(type, n)
+            BlockType.U8Sparse -> SparseBlock<Short>(type, n)
+            BlockType.U16Sparse -> SparseBlock<Int>(type, n)
+            BlockType.U32Sparse -> SparseBlock<Long>(type, n)
+            BlockType.U64Sparse -> SparseBlock<BigInteger>(type, n)
+            else ->
+                throw IllegalArgumentException("cannot create random block for $type block type")
+        }
+
+        return fillRandomSparseBlock(sparseBlock, n)
+    }
+
+    private fun <T> fillRandomSparseBlock(sparseBlock: SparseBlock<T>, n: Int): SparseBlock<T> {
         val generator = Random()
         val offsets = (0 until n).map { generator.nextInt(Int.MAX_VALUE) }
-//        offsets.sorted().forEach { offset ->
-//            block.add(
-//                    offset,
-//                    when (type) {
-//                        BlockType.I8Sparse -> (generator.nextInt(256) - 128).toByte()
-//                        BlockType.I16Sparse -> (generator.nextInt(65536) - 32768).toShort()
-//                        BlockType.I32Sparse -> generator.nextInt()
-//                        BlockType.I64Sparse -> generator.nextLong()
-//                        BlockType.U8Sparse -> generator.nextInt(256)
-//                        BlockType.U16Sparse -> generator.nextInt(65536)
-//                        BlockType.U32Sparse -> generator.nextInt(Int.MAX_VALUE)
-//                        BlockType.U64Sparse -> Math.abs(generator.nextLong())
-//                        else ->
-//                            throw IllegalArgumentException("randomSparseColumn cannot be used to build dense or String column")
-//                    })
-//        }
+        val valueList: MutableList<T> = ArrayList(n)
+        (0 until n).forEach {
+            when (sparseBlock.type) {
+                BlockType.I8Sparse -> valueList.add((generator.nextInt(256) - 128).toByte() as T)
+                BlockType.I16Sparse -> valueList.add((generator.nextInt(65536) - 32768).toShort() as T)
+                BlockType.I32Sparse -> valueList.add(generator.nextInt() as T)
+                BlockType.I64Sparse -> valueList.add(generator.nextLong() as T)
+                BlockType.U8Sparse -> valueList.add(generator.nextInt(256) as T)
+                BlockType.U16Sparse -> valueList.add(generator.nextInt(65536) as T)
+                BlockType.U32Sparse -> valueList.add(generator.nextInt(Int.MAX_VALUE) as T)
+                BlockType.U64Sparse -> valueList.add(Math.abs(generator.nextLong()) as T)
+                else ->
+                    throw IllegalArgumentException("randomSparseColumn cannot be created for " + sparseBlock.type + " type")
+            }
+        }
 
-        return block
+        offsets.zip(valueList).forEach { (index, value) -> sparseBlock.add(index, value) }
+
+        return sparseBlock
     }
 
     private fun createBlock(n: Int, type: BlockType): Block {
