@@ -103,10 +103,7 @@ object SparseBlockTest : Spek({
                         throws<IllegalArgumentException>())
             }
 
-            it("Cannot be created with zero or negative size") {
-                assert.that(
-                        { SparseBlock<Int>(BlockType.I32Sparse, 0) },
-                        throws<IllegalArgumentException>())
+            it("Cannot be created with negative size") {
                 assert.that(
                         { SparseBlock<Int>(BlockType.I32Sparse, -16) },
                         throws<IllegalArgumentException>())

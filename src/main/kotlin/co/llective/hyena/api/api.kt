@@ -234,8 +234,8 @@ class SparseBlock<T> : Block {
 
     constructor(type: BlockType, size: Int)
             : this(type = type, offsetData = ArrayList(size), valueData = ArrayList(size)) {
-        if (size <= 0) {
-            throw IllegalArgumentException("Data size must be positive")
+        if (size < 0) {
+            throw IllegalArgumentException("Data size must not be negative")
         }
 
         when (type) {

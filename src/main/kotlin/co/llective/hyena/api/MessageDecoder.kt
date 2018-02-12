@@ -147,7 +147,7 @@ object MessageDecoder {
     }
 
     @Throws(IOException::class)
-    private fun decodeBlockHolder(buf: ByteBuffer): BlockHolder {
+    internal fun decodeBlockHolder(buf: ByteBuffer): BlockHolder {
         val type = BlockType.values()[buf.int]
         val recordsCount = buf.long.toInt()
 

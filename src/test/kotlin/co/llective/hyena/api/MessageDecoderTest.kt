@@ -60,4 +60,71 @@ object MessageDecoderTest : Spek({
             assert.that(bi3, equalTo(BigInteger("9223372036854775808")))
         }
     }
+
+    describe("Decode BlockHolder") {
+        it("Correctly deserializes empty DenseBlock") {
+            val byteBuffer = ByteBuffer.allocate(12)
+            byteBuffer.putInt(BlockType.U32Dense.ordinal)
+            byteBuffer.putLong(0)
+            byteBuffer.position(0)
+
+            val result = MessageDecoder.decodeBlockHolder(byteBuffer)
+            assert.that(result.type, equalTo(BlockType.U32Dense))
+            assert.that(result.block.type, equalTo(BlockType.U32Dense))
+            assert.that(result.block.count(), equalTo(0))
+        }
+
+        it("Correctly deserializes non-empty DenseBlock") {
+            val value = Long.MAX_VALUE / 4
+            val byteBuffer = ByteBuffer.allocate(20)
+            byteBuffer.putInt(BlockType.I64Dense.ordinal)
+            byteBuffer.putLong(1)
+            byteBuffer.putLong(value)
+            byteBuffer.position(0)
+
+            val result = MessageDecoder.decodeBlockHolder(byteBuffer)
+            assert.that(result.type, equalTo(BlockType.I64Dense))
+            assert.that(result.block.type, equalTo(BlockType.I64Dense))
+            assert.that(result.block.count(), equalTo(1))
+            assert.that((result.block as DenseBlock<Long>).data.size, equalTo(1))
+            assert.that((result.block as DenseBlock<Long>).data[0], equalTo(value))
+        }
+
+        it("Correctly deserializes empty SparseBlock") {
+            val byteBuffer = ByteBuffer.allocate(20)
+            byteBuffer.putInt(BlockType.U32Sparse.ordinal)
+            byteBuffer.putLong(0)
+            byteBuffer.putLong(0)
+            byteBuffer.position(0)
+
+            val result = MessageDecoder.decodeBlockHolder(byteBuffer)
+            assert.that(result.type, equalTo(BlockType.U32Sparse))
+            assert.that(result.block.type, equalTo(BlockType.U32Sparse))
+            assert.that(result.block.count(), equalTo(0))
+        }
+
+        it("Correctly deserializes non-empty SparseBlock") {
+            val index = 15
+            val value = 2
+            val byteBuffer = ByteBuffer.allocate(26)
+            byteBuffer.putInt(BlockType.U8Sparse.ordinal)
+            // values
+            byteBuffer.putLong(1)
+            byteBuffer.put(value.toByte())
+            // indexes
+            byteBuffer.putLong(1)
+            byteBuffer.putInt(index)
+
+            byteBuffer.position(0)
+
+            val result = MessageDecoder.decodeBlockHolder(byteBuffer)
+            assert.that(result.type, equalTo(BlockType.U8Sparse))
+            assert.that(result.block.type, equalTo(BlockType.U8Sparse))
+            assert.that(result.block.count(), equalTo(1))
+            assert.that((result.block as SparseBlock<Short>).offsetData.size, equalTo(1))
+            assert.that((result.block as SparseBlock<Short>).offsetData[0], equalTo(index))
+            assert.that((result.block as SparseBlock<Short>).valueData.size, equalTo(1))
+            assert.that((result.block as SparseBlock<Short>).valueData[0], equalTo(value.toShort()))
+        }
+    }
 })
