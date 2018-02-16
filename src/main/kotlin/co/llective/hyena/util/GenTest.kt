@@ -75,9 +75,18 @@ fun main(args: Array<String>) {
 
     when (options.command) {
         "COLUMNS" -> gen_columns(options)
+        "CATALOG" -> gen_catalog(options)
+        /*
+        "ADDCOLUMN" ->
+        "INSERT"
+        "SCAN"
+         */
     }
+}
 
-    println(options)
+fun gen_catalog(options: GenOptions) {
+    val request = MessageBuilder.buildRefreshCatalogMessage()
+    write(options, request)
 }
 
 fun gen_columns(options: GenOptions) {
