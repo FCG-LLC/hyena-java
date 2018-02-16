@@ -1,6 +1,7 @@
 package co.llective.hyena.util
 
 import co.llective.hyena.api.*
+import co.llective.hyena.repl.Helper
 import org.apache.commons.cli.*
 import org.apache.commons.cli.HelpFormatter
 import java.io.File
@@ -74,12 +75,47 @@ fun main(args: Array<String>) {
         "COLUMNS" -> genColumns(options)
         "CATALOG" -> genCatalog(options)
         "ADDCOLUMN" -> genAddColumns(options)
+        "INSERT" -> genInsert(options)
     /*
-    "INSERT"
     "SCAN"
      */
     }
 }
+
+fun genInsert(options: GenOptions) {
+    if (options.rows == 0) {
+        println("Cannot insert 0 rows")
+        System.exit(1)
+    }
+    if (options.sourceId == 0) {
+        println("Need source id")
+        System.exit(1)
+    }
+    if (options.columnIds.size == 0 || options.blockTypes.size == 0) {
+        println("Need columns and they types")
+        System.exit(1)
+    }
+    if (options.columnIds.size != options.blockTypes.size) {
+        println("number of -i and -t options must match")
+        System.exit(1)
+    }
+
+    val timestamps = Helper.randomTimestamps(options.rows)
+    val data = (0..options.columnIds.size-1).map {i ->
+        ColumnData(options.columnIds[i],
+                   genBlock(options.rows, options.blockTypes[i]))
+    }.toTypedArray()
+
+    val request = MessageBuilder.buildInsertMessage(options.sourceId, timestamps, *data)
+    write(options, request)
+}
+
+fun genBlock(rows: Int, blockType: BlockType): Block =
+    if (blockType.isDense()) {
+        Helper.randomDenseBlock(rows, blockType)
+    } else {
+        Helper.randomSparseBlock(rows, blockType)
+    }
 
 fun genAddColumns(options: GenOptions) {
     if (options.blockTypes.size < 1 || options.columnNames.size < 1) {

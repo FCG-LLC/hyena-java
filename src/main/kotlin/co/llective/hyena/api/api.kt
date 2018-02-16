@@ -55,7 +55,25 @@ enum class BlockType {
     U32Sparse,
     U64Sparse,
     U128Sparse,
-    String
+    String;
+
+    fun isDense(): Boolean =
+        when (this) {
+            BlockType.I8Dense,
+            BlockType.I16Dense,
+            BlockType.I32Dense,
+            BlockType.I64Dense,
+            BlockType.I128Dense,
+            BlockType.U8Dense,
+            BlockType.U16Dense,
+            BlockType.U32Dense,
+            BlockType.U64Dense,
+            BlockType.U128Dense -> true
+
+            else -> false
+        }
+
+    fun isSparse(): Boolean = !this.isDense()
 }
 
 enum class FilterType {
