@@ -80,6 +80,24 @@ object Helper {
         return sparseBlock
     }
 
+    @JvmStatic
+    fun convertValue(value: String, type: FilterType): Any =
+        when (type) {
+            FilterType.I8   -> Integer.parseInt(value)
+            FilterType.I16  -> Integer.parseInt(value)
+            FilterType.I32  -> Integer.parseInt(value)
+            FilterType.I64  -> java.lang.Long.parseLong(value)
+            FilterType.I128 -> TODO()
+            FilterType.U8   -> Integer.parseInt(value)
+            FilterType.U16  -> Integer.parseInt(value)
+            FilterType.U32  -> java.lang.Long.parseLong(value)
+            //FilterType.U64  -> MessageDecoder.decodeBigInt(java.lang.Long.parseLong(value))
+            FilterType.U64  -> java.lang.Long.parseLong(value)
+            FilterType.U128 -> TODO()
+            FilterType.String -> value
+        }
+
+
     private fun createBlock(n: Int, type: BlockType): Block {
         return when (type) {
             BlockType.I8Dense -> DenseBlock<Byte>(type, n)

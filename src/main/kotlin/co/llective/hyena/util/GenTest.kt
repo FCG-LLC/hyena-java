@@ -13,22 +13,16 @@ class GenOptions {
     var output: String = ""
     val columnNames: MutableList<String> = ArrayList()
     val blockTypes: MutableList<BlockType> = ArrayList()
-    val columnIds: MutableList<Int> = ArrayList()
+    val columnIds: MutableList<Long> = ArrayList()
     var rows: Int = 0
     var sourceId: Int = 0
     var minTs: Long = 0
     var maxTs: Long = 0
     val partitions: MutableSet<UUID> = HashSet()
-    val filterColumns: MutableList<Int> = ArrayList()
+    val filterColumns: MutableList<Long> = ArrayList()
     val filterTypes: MutableList<FilterType> = ArrayList()
-    val filterOperator: MutableList<ScanComparison> = ArrayList()
-    val filterValues: MutableList<Any> = ArrayList()
-}
-
-fun CommandLine.countOptionValues(shortOpt: String): Int {
-    return this.options.filter {option ->
-        option.opt == shortOpt
-    }.size
+    val filterOperators: MutableList<ScanComparison> = ArrayList()
+    val filterValues: MutableList<String> = ArrayList()
 }
 
 fun getOptions(): Options {
@@ -76,10 +70,35 @@ fun main(args: Array<String>) {
         "CATALOG" -> genCatalog(options)
         "ADDCOLUMN" -> genAddColumns(options)
         "INSERT" -> genInsert(options)
-    /*
-    "SCAN"
-     */
+        "SCAN" -> genScan(options)
     }
+}
+
+fun genScan(options: GenOptions) {
+    if (options.filterColumns.size != options.filterTypes.size
+            || options.filterColumns.size != options.filterOperators.size
+            || options.filterColumns.size != options.filterValues.size) {
+        println("Number of -l, -f, -p, -v must be the same")
+        System.exit(1)
+    }
+
+    val filters = (0 until options.filterColumns.size).map { i ->
+        ScanFilter(
+                options.filterColumns[i],
+                options.filterOperators[i],
+                options.filterTypes[i],
+                Helper.convertValue(options.filterValues[i], options.filterTypes[i]),
+                Optional.empty())
+    }
+    val sr = ScanRequest(
+            options.minTs,
+            options.maxTs,
+            options.partitions,
+            filters,
+            options.columnIds.toList()
+    )
+    val request = MessageBuilder.buildScanMessage(sr)
+    write(options, request)
 }
 
 fun genInsert(options: GenOptions) {
@@ -101,8 +120,8 @@ fun genInsert(options: GenOptions) {
     }
 
     val timestamps = Helper.randomTimestamps(options.rows)
-    val data = (0..options.columnIds.size-1).map {i ->
-        ColumnData(options.columnIds[i],
+    val data = (0 until options.columnIds.size).map { i ->
+        ColumnData(options.columnIds[i].toInt(),
                    genBlock(options.rows, options.blockTypes[i]))
     }.toTypedArray()
 
@@ -153,20 +172,20 @@ fun parseOptions(commandLine: CommandLine): GenOptions {
             "t" -> options.blockTypes.add(BlockType.valueOf(option.value))
             "r" -> options.rows = Integer.parseInt(option.value)
             "s" -> options.sourceId = Integer.parseInt(option.value)
-            "i" -> options.columnIds.add(Integer.parseInt(option.value))
+            "i" -> options.columnIds.add(java.lang.Long.parseLong(option.value))
             "m" -> options.minTs = java.lang.Long.parseLong(option.value)
             "x" -> options.maxTs = java.lang.Long.parseLong(option.value)
             "u" -> options.partitions.add(UUID.randomUUID())
-            "l" -> options.filterColumns.add(Integer.parseInt(option.value))
+            "l" -> options.filterColumns.add(java.lang.Long.parseLong(option.value))
             "f" -> options.filterTypes.add(FilterType.valueOf(option.value))
-            "p" -> options.filterOperator.add(ScanComparison.valueOf(option.value))
+            "p" -> options.filterOperators.add(ScanComparison.valueOf(option.value))
             "v" -> options.filterValues.add(option.value)
         }
     }
 
     if (options.filterTypes.size != options.filterValues.size) {
         println("Number of -f and -v options must be the same")
-        System.exit(1);
+        System.exit(1)
     }
 
     return options
