@@ -1,9 +1,6 @@
 package co.llective.hyena.util
 
-import co.llective.hyena.api.BlockType
-import co.llective.hyena.api.FilterType
-import co.llective.hyena.api.MessageBuilder
-import co.llective.hyena.api.ScanComparison
+import co.llective.hyena.api.*
 import org.apache.commons.cli.*
 import org.apache.commons.cli.HelpFormatter
 import java.io.File
@@ -74,22 +71,32 @@ fun main(args: Array<String>) {
     val options = parseOptions(commandLine)
 
     when (options.command) {
-        "COLUMNS" -> gen_columns(options)
-        "CATALOG" -> gen_catalog(options)
-        /*
-        "ADDCOLUMN" ->
-        "INSERT"
-        "SCAN"
-         */
+        "COLUMNS" -> genColumns(options)
+        "CATALOG" -> genCatalog(options)
+        "ADDCOLUMN" -> genAddColumns(options)
+    /*
+    "INSERT"
+    "SCAN"
+     */
     }
 }
 
-fun gen_catalog(options: GenOptions) {
+fun genAddColumns(options: GenOptions) {
+    if (options.blockTypes.size < 1 || options.columnNames.size < 1) {
+        println("At least one column (both name and type) are needed")
+        System.exit(1)
+    }
+    val column = Column(options.blockTypes[0], 0, options.columnNames[0])
+    val request = MessageBuilder.buildAddColumnMessage(column)
+    write(options, request)
+}
+
+fun genCatalog(options: GenOptions) {
     val request = MessageBuilder.buildRefreshCatalogMessage()
     write(options, request)
 }
 
-fun gen_columns(options: GenOptions) {
+fun genColumns(options: GenOptions) {
     val request = MessageBuilder.buildListColumnsMessage()
     write(options, request)
 }
