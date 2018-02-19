@@ -147,67 +147,93 @@ object MessageDecoder {
     }
 
     @Throws(IOException::class)
-    private fun decodeBlockHolder(buf: ByteBuffer): BlockHolder {
+    internal fun decodeBlockHolder(buf: ByteBuffer): BlockHolder {
         val type = BlockType.values()[buf.int]
         val recordsCount = buf.long.toInt()
 
         val block = when (type) {
-            BlockType.String -> StringBlock(recordsCount)
-            BlockType.I8Dense -> DenseBlock<Byte>(type, recordsCount)
-            BlockType.I16Dense -> DenseBlock<Short>(type, recordsCount)
-            BlockType.I32Dense -> DenseBlock<Int>(type, recordsCount)
-            BlockType.I64Dense -> DenseBlock<Long>(type, recordsCount)
-            BlockType.U8Dense -> DenseBlock<Short>(type, recordsCount)
-            BlockType.U16Dense -> DenseBlock<Int>(type, recordsCount)
-            BlockType.U32Dense -> DenseBlock<Long>(type, recordsCount)
-            BlockType.U64Dense -> DenseBlock<BigInteger>(type, recordsCount)
-            BlockType.I8Sparse -> SparseBlock<Byte>(type, recordsCount)
-            BlockType.I16Sparse -> SparseBlock<Short>(type, recordsCount)
-            BlockType.I32Sparse -> SparseBlock<Int>(type, recordsCount)
-            BlockType.I64Sparse -> SparseBlock<Long>(type, recordsCount)
-            BlockType.U8Sparse -> SparseBlock<Short>(type, recordsCount)
-            BlockType.U16Sparse -> SparseBlock<Int>(type, recordsCount)
-            BlockType.U32Sparse -> SparseBlock<Long>(type, recordsCount)
-            BlockType.U64Sparse -> SparseBlock<BigInteger>(type, recordsCount)
+            BlockType.I8Dense -> fillDenseBlock(DenseBlock<Byte>(type, recordsCount), recordsCount, buf)
+            BlockType.I16Dense -> fillDenseBlock(DenseBlock<Short>(type, recordsCount), recordsCount, buf)
+            BlockType.I32Dense -> fillDenseBlock(DenseBlock<Int>(type, recordsCount), recordsCount, buf)
+            BlockType.I64Dense -> fillDenseBlock(DenseBlock<Long>(type, recordsCount), recordsCount, buf)
+            BlockType.U8Dense -> fillDenseBlock(DenseBlock<Short>(type, recordsCount), recordsCount, buf)
+            BlockType.U16Dense -> fillDenseBlock(DenseBlock<Int>(type, recordsCount), recordsCount, buf)
+            BlockType.U32Dense -> fillDenseBlock(DenseBlock<Long>(type, recordsCount), recordsCount, buf)
+            BlockType.U64Dense -> fillDenseBlock(DenseBlock<BigInteger>(type, recordsCount), recordsCount, buf)
+            BlockType.I8Sparse -> fillSparseBlock(SparseBlock<Byte>(type, recordsCount), recordsCount, buf)
+            BlockType.I16Sparse -> fillSparseBlock(SparseBlock<Short>(type, recordsCount), recordsCount, buf)
+            BlockType.I32Sparse -> fillSparseBlock(SparseBlock<Int>(type, recordsCount), recordsCount, buf)
+            BlockType.I64Sparse -> fillSparseBlock(SparseBlock<Long>(type, recordsCount), recordsCount, buf)
+            BlockType.U8Sparse -> fillSparseBlock(SparseBlock<Short>(type, recordsCount), recordsCount, buf)
+            BlockType.U16Sparse -> fillSparseBlock(SparseBlock<Int>(type, recordsCount), recordsCount, buf)
+            BlockType.U32Sparse -> fillSparseBlock(SparseBlock<Long>(type, recordsCount), recordsCount, buf)
+            BlockType.U64Sparse -> fillSparseBlock(SparseBlock<BigInteger>(type, recordsCount), recordsCount, buf)
+            BlockType.String -> TODO("Strings are not supported yet")
             else -> {
                 // 128 bit
                 TODO("implement")
             }
         }
 
-        for (i in 0 until recordsCount) {
-            when (type) {
-                BlockType.String -> (block as StringBlock).add(buf.int, buf.long)
-                BlockType.I8Dense -> (block as DenseBlock<Byte>).add(buf.get())
-                BlockType.I16Dense -> (block as DenseBlock<Short>).add(buf.short)
-                BlockType.I32Dense -> (block as DenseBlock<Int>).add(buf.int)
-                BlockType.I64Dense -> (block as DenseBlock<Long>).add(buf.long)
-                BlockType.U8Dense -> (block as DenseBlock<Short>).add(buf.get().toShort())
-                BlockType.U16Dense -> (block as DenseBlock<Int>).add(buf.short.toInt())
-                BlockType.U32Dense -> (block as DenseBlock<Long>).add(buf.int.toLong())
-                BlockType.U64Dense -> (block as DenseBlock<BigInteger>).add(decodeBigInt(buf.long))
-                BlockType.I8Sparse -> (block as SparseBlock<Byte>).add(buf.int, buf.get())
-                BlockType.I16Sparse -> (block as SparseBlock<Short>).add(buf.int, buf.short)
-                BlockType.I32Sparse -> (block as SparseBlock<Int>).add(buf.int, buf.int)
-                BlockType.I64Sparse -> (block as SparseBlock<Long>).add(buf.int, buf.long)
-                BlockType.U8Sparse -> (block as SparseBlock<Short>).add(buf.int, buf.get().toShort())
-                BlockType.U16Sparse -> (block as SparseBlock<Int>).add(buf.int, buf.short.toInt())
-                BlockType.U32Sparse -> (block as SparseBlock<Long>).add(buf.int, buf.int.toLong())
-                BlockType.U64Sparse -> (block as SparseBlock<BigInteger>).add(buf.int, decodeBigInt(buf.long))
+        return BlockHolder(type, block)
+    }
+
+    private fun <T> fillDenseBlock(denseBlock: DenseBlock<T>, vectorLen: Int, buf: ByteBuffer): DenseBlock<T> {
+        for (i in 0 until vectorLen) {
+            when (denseBlock.type) {
+                BlockType.I8Dense -> (denseBlock as DenseBlock<Byte>).add(buf.get())
+                BlockType.I16Dense -> (denseBlock as DenseBlock<Short>).add(buf.short)
+                BlockType.I32Dense -> (denseBlock as DenseBlock<Int>).add(buf.int)
+                BlockType.I64Dense -> (denseBlock as DenseBlock<Long>).add(buf.long)
+                BlockType.U8Dense -> (denseBlock as DenseBlock<Short>).add(buf.get().toShort())
+                BlockType.U16Dense -> (denseBlock as DenseBlock<Int>).add(buf.short.toInt())
+                BlockType.U32Dense -> (denseBlock as DenseBlock<Long>).add(buf.int.toLong())
+                BlockType.U64Dense -> (denseBlock as DenseBlock<BigInteger>).add(decodeBigInt(buf.long))
                 BlockType.I128Dense -> TODO()
                 BlockType.U128Dense -> TODO()
-                BlockType.I128Sparse -> TODO()
-                BlockType.U128Sparse -> TODO()
+                else -> throw DeserializationException("Sparse/String block cannot be serialized as dense one")
             }
         }
 
-//        if (type == BlockType.String) {
-//            val len = buf.long.toInt()
-//            (block as StringBlock).bytes = ByteArray(len)
-//            buf.get(block.bytes, 0, len)
-//        }
+        return denseBlock
+    }
 
-        return BlockHolder(type, block)
+    private fun <T> fillSparseBlock(sparseBlock: SparseBlock<T>, vectorsLen: Int, buf: ByteBuffer): SparseBlock<T> {
+        val type = sparseBlock.type
+
+        // deserialize values vector (size is already taken from buffer)
+        val valueList: MutableList<T> = ArrayList(vectorsLen)
+        for (i in 0 until vectorsLen) {
+            when (type) {
+                BlockType.I8Sparse -> valueList.add(buf.get() as T)
+                BlockType.I16Sparse -> valueList.add(buf.short as T)
+                BlockType.I32Sparse -> valueList.add(buf.int as T)
+                BlockType.I64Sparse -> valueList.add(buf.long as T)
+                BlockType.U8Sparse -> valueList.add(buf.get().toShort() as T)
+                BlockType.U16Sparse -> valueList.add(buf.short.toInt() as T)
+                BlockType.U32Sparse -> valueList.add(buf.int.toLong() as T)
+                BlockType.U64Sparse -> valueList.add(decodeBigInt(buf.long) as T)
+                BlockType.I128Sparse -> TODO()
+                BlockType.U128Sparse -> TODO()
+                else -> throw DeserializationException("Dense/String block cannot be serialized as sparse one")
+            }
+        }
+
+        // deserialize offsets vector
+        if (buf.long.toInt() != vectorsLen) {
+            throw DeserializationException("Sparse data inconsistent, values len doesn't match offsets len")
+        }
+        val offsetList: MutableList<Int> = ArrayList(vectorsLen)
+        for (i in 0 until vectorsLen) {
+            offsetList.add(buf.int)
+        }
+
+        // add vectors to sparse block
+        for (i in 0 until vectorsLen) {
+            sparseBlock.add(offsetList[i], valueList[i])
+        }
+
+        return sparseBlock
     }
 
     private val TWO_COMPLEMENT: BigInteger = BigInteger.ONE.shiftLeft(64)

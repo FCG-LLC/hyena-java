@@ -5,10 +5,7 @@ import org.apache.commons.lang3.StringUtils
 import java.io.DataOutput
 import java.lang.IllegalArgumentException
 import java.math.BigInteger
-import java.util.ArrayList
-import java.util.Arrays
-import java.util.Optional
-import java.util.UUID
+import java.util.*
 
 enum class ApiRequest {
     ListColumns,
@@ -237,8 +234,8 @@ class SparseBlock<T> : Block {
 
     constructor(type: BlockType, size: Int)
             : this(type = type, offsetData = ArrayList(size), valueData = ArrayList(size)) {
-        if (size <= 0) {
-            throw IllegalArgumentException("Data size must be positive")
+        if (size < 0) {
+            throw IllegalArgumentException("Data size must not be negative")
         }
 
         when (type) {
@@ -269,10 +266,9 @@ class SparseBlock<T> : Block {
             Optional.empty()
     }
 
-    @Suppress("UNCHECKED_CAST")
-    fun add(offset: Int, value: Any): SparseBlock<T> {
+    fun add(offset: Int, value: T): SparseBlock<T> {
         offsetData.add(offset)
-        valueData.add(value as T)
+        valueData.add(value)
         return this
     }
 
