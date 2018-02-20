@@ -56,7 +56,7 @@ object Helper {
         return fillRandomSparseBlock(sparseBlock, n)
     }
 
-    private fun <T> fillRandomSparseBlock(sparseBlock: SparseBlock<T>, n: Int): SparseBlock<T> {
+    private fun <T: Number> fillRandomSparseBlock(sparseBlock: SparseBlock<T>, n: Int): SparseBlock<T> {
         val generator = Random()
         val offsets = (0 until n).map { generator.nextInt(Int.MAX_VALUE) }
         val valueList: MutableList<T> = ArrayList(n)
