@@ -91,7 +91,6 @@ object Helper {
             FilterType.U8   -> Integer.parseInt(value)
             FilterType.U16  -> Integer.parseInt(value)
             FilterType.U32  -> java.lang.Long.parseLong(value)
-            //FilterType.U64  -> MessageDecoder.decodeBigInt(java.lang.Long.parseLong(value))
             FilterType.U64  -> java.lang.Long.parseLong(value)
             FilterType.U128 -> TODO()
             FilterType.String -> value
