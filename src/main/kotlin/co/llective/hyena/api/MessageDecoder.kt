@@ -186,7 +186,7 @@ object MessageDecoder {
                 BlockType.I16Dense -> (denseBlock as DenseBlock<Short>).add(buf.short)
                 BlockType.I32Dense -> (denseBlock as DenseBlock<Int>).add(buf.int)
                 BlockType.I64Dense -> (denseBlock as DenseBlock<Long>).add(buf.long)
-                BlockType.U8Dense -> (denseBlock as DenseBlock<Short>).add(byteToUnsignedShort(buf.get()))
+                BlockType.U8Dense -> (denseBlock as DenseBlock<Short>).add(buf.get().toUnsignedShort())
                 BlockType.U16Dense -> (denseBlock as DenseBlock<Int>).add(java.lang.Short.toUnsignedInt(buf.short))
                 BlockType.U32Dense -> (denseBlock as DenseBlock<Long>).add(java.lang.Integer.toUnsignedLong(buf.int))
                 BlockType.U64Dense -> (denseBlock as DenseBlock<BigInteger>).add(decodeBigInt(buf.long))
@@ -210,7 +210,7 @@ object MessageDecoder {
                 BlockType.I16Sparse -> valueList.add(buf.short as T)
                 BlockType.I32Sparse -> valueList.add(buf.int as T)
                 BlockType.I64Sparse -> valueList.add(buf.long as T)
-                BlockType.U8Sparse -> valueList.add(byteToUnsignedShort(buf.get()) as T)
+                BlockType.U8Sparse -> valueList.add(buf.get().toUnsignedShort() as T)
                 BlockType.U16Sparse -> valueList.add(java.lang.Short.toUnsignedInt(buf.short) as T)
                 BlockType.U32Sparse -> valueList.add(java.lang.Integer.toUnsignedLong(buf.int) as T)
                 BlockType.U64Sparse -> valueList.add(decodeBigInt(buf.long) as T)
@@ -237,8 +237,13 @@ object MessageDecoder {
         return sparseBlock
     }
 
-    fun byteToUnsignedShort(byte : Byte) : Short {
-        return ((byte.toShort()) and 0xff)
+    /**
+     * Function to convert signed bytes to unsigned short.
+     *
+     * E.g. -2 -> 254
+     */
+    fun Byte.toUnsignedShort() : Short {
+        return ((this.toShort()) and 0xff)
     }
 
     private val TWO_COMPLEMENT: BigInteger = BigInteger.ONE.shiftLeft(64)
