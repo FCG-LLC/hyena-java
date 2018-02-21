@@ -43,6 +43,7 @@ dependencies {
   compile group: 'io.airlift', name: 'bootstrap', version: '0.150'
   compile group: 'jnanomsg', name: 'jnanomsg', version: '0.4.3'
   compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.6'
+  compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
 
   testCompile 'org.jetbrains.spek:spek-api:1.1.5'
   testCompile group: 'com.natpryce', name: 'hamkrest', version: '1.4.2.2'
@@ -107,4 +108,15 @@ task repledJar(type: Jar) {
   baseName = project.name + '-repl-all'
   from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
   with jar
+}
+
+task gentestJar(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'Hyena API REPL',
+                'Implementation-Version': version,
+                'Main-Class': 'co.llective.hyena.util.GenTestKt'
+    }
+    baseName = project.name + '-gentest'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
 }

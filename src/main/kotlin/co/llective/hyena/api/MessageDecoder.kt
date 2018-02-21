@@ -178,7 +178,7 @@ object MessageDecoder {
         return BlockHolder(type, block)
     }
 
-    private fun <T> fillDenseBlock(denseBlock: DenseBlock<T>, vectorLen: Int, buf: ByteBuffer): DenseBlock<T> {
+    private fun <T: Number> fillDenseBlock(denseBlock: DenseBlock<T>, vectorLen: Int, buf: ByteBuffer): DenseBlock<T> {
         for (i in 0 until vectorLen) {
             when (denseBlock.type) {
                 BlockType.I8Dense -> (denseBlock as DenseBlock<Byte>).add(buf.get())
@@ -198,7 +198,7 @@ object MessageDecoder {
         return denseBlock
     }
 
-    private fun <T> fillSparseBlock(sparseBlock: SparseBlock<T>, vectorsLen: Int, buf: ByteBuffer): SparseBlock<T> {
+    private fun <T: Number> fillSparseBlock(sparseBlock: SparseBlock<T>, vectorsLen: Int, buf: ByteBuffer): SparseBlock<T> {
         val type = sparseBlock.type
 
         // deserialize values vector (size is already taken from buffer)

@@ -56,7 +56,7 @@ object Helper {
         return fillRandomSparseBlock(sparseBlock, n)
     }
 
-    private fun <T> fillRandomSparseBlock(sparseBlock: SparseBlock<T>, n: Int): SparseBlock<T> {
+    private fun <T: Number> fillRandomSparseBlock(sparseBlock: SparseBlock<T>, n: Int): SparseBlock<T> {
         val generator = Random()
         val offsets = (0 until n).map { generator.nextInt(Int.MAX_VALUE) }
         val valueList: MutableList<T> = ArrayList(n)
@@ -79,6 +79,23 @@ object Helper {
 
         return sparseBlock
     }
+
+    @JvmStatic
+    fun convertValue(value: String, type: FilterType): Any =
+        when (type) {
+            FilterType.I8   -> Integer.parseInt(value)
+            FilterType.I16  -> Integer.parseInt(value)
+            FilterType.I32  -> Integer.parseInt(value)
+            FilterType.I64  -> java.lang.Long.parseLong(value)
+            FilterType.I128 -> TODO()
+            FilterType.U8   -> Integer.parseInt(value)
+            FilterType.U16  -> Integer.parseInt(value)
+            FilterType.U32  -> java.lang.Long.parseLong(value)
+            FilterType.U64  -> java.lang.Long.parseLong(value)
+            FilterType.U128 -> TODO()
+            FilterType.String -> value
+        }
+
 
     private fun createBlock(n: Int, type: BlockType): Block {
         return when (type) {

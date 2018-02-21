@@ -28,6 +28,15 @@ enum class ScanComparison {
     NotEq
 }
 
+enum class Size {
+    Bit8,
+    Bit16,
+    Bit32,
+    Bit64,
+    Bit128,
+    Varying
+}
+
 enum class BlockType {
     I8Dense,
     I16Dense,
@@ -55,7 +64,55 @@ enum class BlockType {
     U32Sparse,
     U64Sparse,
     U128Sparse,
-    String
+    String;
+
+    fun isDense(): Boolean =
+        when (this) {
+            BlockType.I8Dense,
+            BlockType.I16Dense,
+            BlockType.I32Dense,
+            BlockType.I64Dense,
+            BlockType.I128Dense,
+            BlockType.U8Dense,
+            BlockType.U16Dense,
+            BlockType.U32Dense,
+            BlockType.U64Dense,
+            BlockType.U128Dense -> true
+
+            else -> false
+        }
+
+    fun isSparse(): Boolean = !this.isDense()
+
+    fun size(): Size =
+        when (this) {
+            BlockType.I8Dense,
+            BlockType.U8Dense,
+            BlockType.I8Sparse,
+            BlockType.U8Sparse -> Size.Bit8
+
+            BlockType.I16Dense,
+            BlockType.U16Dense,
+            BlockType.I16Sparse,
+            BlockType.U16Sparse -> Size.Bit16
+
+            BlockType.I32Dense,
+            BlockType.U32Dense,
+            BlockType.I32Sparse,
+            BlockType.U32Sparse -> Size.Bit32
+
+            BlockType.I64Dense,
+            BlockType.U64Dense,
+            BlockType.I64Sparse,
+            BlockType.U64Sparse -> Size.Bit64
+
+            BlockType.I128Dense,
+            BlockType.U128Dense,
+            BlockType.I128Sparse,
+            BlockType.U128Sparse -> Size.Bit128
+
+            BlockType.String -> Size.Varying
+        }
 }
 
 enum class FilterType {
@@ -98,7 +155,7 @@ data class ScanFilter(
 data class DataTriple(val columnId: Long, val columnType: BlockType, val data: Optional<BlockHolder>) {
     override fun toString(): String {
         return "Column id $columnId $columnType, data: " +
-                if (data.isPresent()) {
+                if (data.isPresent) {
                     data.get().printNumbers()
                 } else {
                     "None"
@@ -157,6 +214,17 @@ abstract class Block(val type: BlockType) {
         }
     }
 
+    fun <T: Number> writeValue(dos: DataOutput, item: T) {
+        when (type.size()) {
+            Size.Bit8 -> dos.writeByte(item.toInt())
+            Size.Bit16 -> dos.writeShort(item.toInt())
+            Size.Bit32 -> dos.writeInt(item.toInt())
+            Size.Bit64 -> dos.writeLong(item.toLong())
+            Size.Bit128 -> writeBigInteger(dos, item as BigInteger)
+            Size.Varying -> TODO()
+        }
+    }
+
     internal fun writeBigInteger(dos: DataOutput, item: BigInteger) {
         if (type == BlockType.U64Dense || type == BlockType.U64Sparse) {
             MessageBuilder.writeU64(dos, item)
@@ -166,7 +234,7 @@ abstract class Block(val type: BlockType) {
     }
 }
 
-open class DenseBlock<T> : Block {
+open class DenseBlock<T: Number> : Block {
     val data: ArrayList<T>
 
     private constructor(type: BlockType, data: ArrayList<T>) : super(type) {
@@ -204,7 +272,7 @@ open class DenseBlock<T> : Block {
     override fun write(dos: DataOutput) {
         dos.writeLong(data.size.toLong())
         for (item in data) {
-            write(dos, item)
+            writeValue(dos, item)
         }
     }
 
@@ -221,7 +289,7 @@ open class DenseBlock<T> : Block {
     }
 }
 
-class SparseBlock<T> : Block {
+class SparseBlock<T: Number> : Block {
     private var currentPosition = 0
     val offsetData: MutableList<Int>
     val valueData: MutableList<T>
@@ -275,7 +343,7 @@ class SparseBlock<T> : Block {
     override fun write(dos: DataOutput) {
         dos.writeLong(valueData.size.toLong())
         for (item in valueData) {
-            write(dos, item)
+            writeValue(dos, item)
         }
 
         dos.writeLong(offsetData.size.toLong())
