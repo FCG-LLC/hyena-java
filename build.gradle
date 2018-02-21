@@ -41,7 +41,7 @@ dependencies {
   compile group: 'io.airlift', name: 'log', version: '0.150'
   compile group: 'io.airlift', name: 'configuration', version: '0.150'
   compile group: 'io.airlift', name: 'bootstrap', version: '0.150'
-  compile group: 'jnanomsg', name: 'jnanomsg', version: '0.4.3'
+  compile group: 'cs', name: 'jnanomsg', version: '0.4.5'
   compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.6'
   compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
 
