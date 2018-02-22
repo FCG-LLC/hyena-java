@@ -42,6 +42,10 @@ open class HyenaApi internal constructor(private val connection: HyenaConnection
         return makeApiCall(message, ListColumnsReply::class.java) { reply -> reply.columns }
     }
 
+    fun controlRequest() {
+        connection.executeControlRequest()
+    }
+
     @Throws(IOException::class, ReplyException::class)
     fun addColumn(column: Column): Optional<Int> {
         val message = MessageBuilder.buildAddColumnMessage(column)
@@ -107,6 +111,22 @@ open internal class HyenaConnection(private val s: Socket = ReqSocket(), private
             if (!connected) {
                 throw IOException("Hyena must be connected first!")
             }
+        }
+    }
+
+    @Throws(IOException::class, DeserializationException::class)
+    open fun executeControlRequest() {
+        ensureConnected()
+
+        try {
+            var replyBuf: ByteBuffer? = null
+            synchronized(lock) {
+                s.send(MessageBuilder.buildConnectMessage())
+                replyBuf = s.recv()
+            }
+            return MessageDecoder.decodeControlReply(replyBuf!!)
+        } catch (exc: IOException) {
+            throw IOException("Nanomsg error: " + Nanomsg.getError(), exc)
         }
     }
 

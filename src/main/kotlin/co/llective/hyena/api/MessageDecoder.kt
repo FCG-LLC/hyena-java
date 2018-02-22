@@ -41,6 +41,19 @@ object MessageDecoder {
         }
     }
 
+    fun decodeControlReply(buf: ByteBuffer) {
+        val controlReplyType = buf.int
+        val ok = buf.int
+        val connectionId = buf.long
+        val stringLength = buf.long.toInt()
+        val chars = CharArray(stringLength)
+        for (i in 0 until stringLength) {
+            chars[i] = buf.get().toChar()
+        }
+        val socketAddress = String(chars)
+        print("Connection id: $connectionId, dedicated socket address: $socketAddress")
+    }
+
     @Throws(IOException::class)
     private fun decodeScanResult(buf: ByteBuffer): ScanResult {
         val data = ArrayList<DataTriple>()

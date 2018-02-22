@@ -5,9 +5,19 @@ import java.io.ByteArrayOutputStream
 import java.io.DataOutput
 import java.io.IOException
 import java.math.BigInteger
-import java.util.UUID
+import java.util.*
 
 object MessageBuilder {
+
+    fun buildConnectMessage() : ByteArray {
+        val baos = ByteArrayOutputStream()
+        val dos = LittleEndianDataOutputStream(baos)
+
+        dos.writeInt(0)
+
+        baos.close()
+        return baos.toByteArray()
+    }
 
     @Throws(IOException::class)
     fun buildListColumnsMessage(): ByteArray {
