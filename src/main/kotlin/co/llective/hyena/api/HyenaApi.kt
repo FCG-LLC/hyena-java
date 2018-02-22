@@ -6,6 +6,7 @@ import nanomsg.Socket
 import nanomsg.reqrep.ReqSocket
 import java.io.IOException
 import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.nio.charset.Charset
 import java.util.*
 
@@ -117,7 +118,9 @@ open internal class HyenaConnection(private val s: Socket = ReqSocket(), private
             var replyBuf: ByteBuffer? = null
             synchronized(lock) {
                 s.send(message)
-                replyBuf = s.recv()
+                val array = s.recvBytes()
+                replyBuf = ByteBuffer.wrap(array)
+                replyBuf!!.order(ByteOrder.LITTLE_ENDIAN)
             }
             return MessageDecoder.decode(replyBuf!!)
         } catch (exc: IOException) {
@@ -129,8 +132,8 @@ open internal class HyenaConnection(private val s: Socket = ReqSocket(), private
     internal fun connect(url: String) {
         synchronized(lock) {
             log.info("Opening new connection to: " + url)
-            s.setRecvTimeout(60000)
-            s.setSendTimeout(60000)
+            s.setSocketOpt(Nanomsg.SocketOption.NN_RCVTIMEO, 60000)
+            s.setSocketOpt(Nanomsg.SocketOption.NN_SNDTIMEO, 60000)
             s.connect(url)
             log.info("Connection successfully opened")
             this.connected = true
