@@ -1,5 +1,6 @@
 package co.llective.hyena.api
 
+import co.llective.hyena.api.MessageDecoder.toUnsignedShort
 import com.natpryce.hamkrest.assertion.assert
 import com.natpryce.hamkrest.equalTo
 import com.natpryce.hamkrest.throws
@@ -125,6 +126,39 @@ object MessageDecoderTest : Spek({
             assert.that((result.block as SparseBlock<Short>).offsetData[0], equalTo(index))
             assert.that((result.block as SparseBlock<Short>).valueData.size, equalTo(1))
             assert.that((result.block as SparseBlock<Short>).valueData[0], equalTo(value.toShort()))
+        }
+    }
+
+    describe("Byte to unsigned short") {
+        it("Converts correctly negative bytes to positive shorts") {
+            var number: Byte = Byte.MIN_VALUE
+            // generates sequence of bytes -128..-1
+            val sequence = generateSequence {
+                (number++).takeIf { it < 0 }
+            }
+
+            var short : Short = Byte.MAX_VALUE.toShort()
+            for (byte : Byte in sequence) {
+                // compares that sequence to corresponding 128..255 values
+                assert.that(byte.toUnsignedShort(), equalTo(++short))
+            }
+        }
+
+        it("Leaves positive bytes positive") {
+            var number: Byte = Byte.MAX_VALUE
+            // generates sequence of bytes 127..1
+            val sequence = generateSequence {
+                (number--).takeIf { it > 0 }
+            }
+            for (byte : Byte in sequence) {
+                assert.that(byte.toUnsignedShort(), equalTo(byte.toShort()))
+            }
+        }
+
+        it("Leaves 0 as it is") {
+            val zeroByte : Byte = 0
+            val zeroShort : Short = 0
+            assert.that(zeroByte.toUnsignedShort(), equalTo(zeroShort))
         }
     }
 })
