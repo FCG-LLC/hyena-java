@@ -6,6 +6,12 @@ import java.nio.ByteBuffer
 import java.util.*
 import kotlin.experimental.and
 
+
+sealed class PeerReply
+class KeepAliveReply : PeerReply()
+data class ResponseReply(val messageId: Long, val bufferPayload: ByteBuffer) : PeerReply()
+data class ResponseReplyError(val messageId: Long) : PeerReply()
+
 object MessageDecoder {
 
     fun decode(buf: ByteBuffer): Reply {
@@ -41,18 +47,39 @@ object MessageDecoder {
         }
     }
 
-    fun decodeControlReply(buf: ByteBuffer) {
+    fun decodePeerReply(buf: ByteBuffer) : PeerReply {
+        val replyType = PeerReplyType.values()[buf.int]
+        when(replyType) {
+            PeerReplyType.KeepAlive -> return KeepAliveReply()
+            PeerReplyType.Response -> {
+                val replyMessageId = buf.long
+                val ok = buf.int
+                if (ok == 0) {
+                    val option = buf.get()
+                    if (option == 0.toByte()) {
+                        throw IOException("No data in response payload")
+                    } else {
+                        val bufSize = buf.long
+                        return ResponseReply(replyMessageId, buf)
+                    }
+                } else if (ok == 1) {
+                    return ResponseReplyError(replyMessageId)
+                }
+            }
+        }
+        throw IllegalStateException("Unreachable branch of decodePeerReply")
+    }
+
+    fun decodeControlReply(buf: ByteBuffer): ControlReply {
         val controlReplyType = buf.int
         val ok = buf.int
         val connectionId = buf.long
-        val stringLength = buf.long.toInt()
-        val chars = CharArray(stringLength)
-        for (i in 0 until stringLength) {
-            chars[i] = buf.get().toChar()
-        }
-        val socketAddress = String(chars)
-        print("Connection id: $connectionId, dedicated socket address: $socketAddress")
+        val socketAddress = decodeString(buf)
+        println("Connection id: $connectionId, dedicated socket address: $socketAddress")
+        return ControlReply(connectionId, socketAddress)
     }
+
+    data class ControlReply(val connectionId: Long, val socketAddress: String)
 
     @Throws(IOException::class)
     private fun decodeScanResult(buf: ByteBuffer): ScanResult {

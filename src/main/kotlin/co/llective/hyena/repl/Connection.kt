@@ -5,7 +5,7 @@ import io.airlift.log.Logger
 
 @Suppress("unused")
 class Connection(address: String) {
-    val hyena: HyenaApi = HyenaApi()
+    val hyena: HyenaApi = HyenaApi(address)//HyenaApi()
     private val log = Logger.get(HyenaApi::class.java)
 
     fun listColumns() {
@@ -28,7 +28,7 @@ class Connection(address: String) {
     }
 
     fun scan(request: ScanRequest) {
-        val result = hyena.scan(request, null)
+        val result = hyena.scan(request)
         val maxrow = result.data
                 .filter({ d -> d.data.isPresent() })
                 .map({ d -> d.data.get().block.count() })
@@ -42,9 +42,5 @@ class Connection(address: String) {
     fun getCatalog() {
         val catalog = hyena.refreshCatalog()
         println(catalog)
-    }
-
-    init {
-        hyena.connect(address)
     }
 }

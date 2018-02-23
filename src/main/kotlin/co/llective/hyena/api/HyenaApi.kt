@@ -1,26 +1,26 @@
 package co.llective.hyena.api
 
+import co.llective.hyena.PeerConnection
+import co.llective.hyena.PeerConnectionManager
 import io.airlift.log.Logger
-import nanomsg.Nanomsg
-import nanomsg.Socket
-import nanomsg.reqrep.ReqSocket
+import nanomsg.exceptions.EAgainException
 import java.io.IOException
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
+import java.lang.Thread.sleep
 import java.nio.charset.Charset
 import java.util.*
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Future
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.concurrent.schedule
 
-open class HyenaApi internal constructor(private val connection: HyenaConnection) {
-    constructor() : this(HyenaConnection())
-
-    @Throws(IOException::class)
-    fun connect(address: String) = connection.connect(address)
-
-    @Throws(IOException::class)
-    fun close() = connection.finalize()
+open class HyenaApi internal constructor(private val connection: ConnectionManager) {
+    constructor(address: String) : this(ConnectionManager(address))
 
     private fun <T, C> makeApiCall(message: ByteArray, expected: Class<C>, extract: (C) -> T): T {
-        val reply = connection.sendAndReceive(message)
+        val replyFuture = connection.sendRequest(message)
+        sleep(Random().nextDouble().times(1000).toLong())
+        val reply = replyFuture.get()
 
         @Suppress("UNCHECKED_CAST")
         when (reply.javaClass) {
@@ -40,10 +40,6 @@ open class HyenaApi internal constructor(private val connection: HyenaConnection
     fun listColumns(): List<Column> {
         val message = MessageBuilder.buildListColumnsMessage()
         return makeApiCall(message, ListColumnsReply::class.java) { reply -> reply.columns }
-    }
-
-    fun controlRequest() {
-        connection.executeControlRequest()
     }
 
     @Throws(IOException::class, ReplyException::class)
@@ -75,7 +71,7 @@ open class HyenaApi internal constructor(private val connection: HyenaConnection
     }
 
     @Throws(IOException::class, ReplyException::class)
-    fun scan(req: ScanRequest, metaOrNull: HyenaOpMetadata?): ScanResult {
+    fun scan(req: ScanRequest): ScanResult {
         val message = MessageBuilder.buildScanMessage(req)
         return makeApiCall(message, ScanReply::class.java) { reply ->
             when (reply.result) {
@@ -98,77 +94,89 @@ open class HyenaApi internal constructor(private val connection: HyenaConnection
 
         val UTF8_CHARSET: Charset = Charset.forName("UTF-8")
     }
-
-    class HyenaOpMetadata {
-        var bytes: Int = 0
-    }
 }
 
-open internal class HyenaConnection(private val s: Socket = ReqSocket(), private var connected: Boolean = false) {
+class ConnectionManager {
+    private val hyenaAddress: String
+    private var connectionManager: PeerConnectionManager
+    private var connection: PeerConnection
+    private val requests : ConcurrentHashMap<Long, CompletableFuture<Any>> = ConcurrentHashMap()
+    private val keepAliveResponse: AtomicBoolean = AtomicBoolean(true)
 
-    internal open fun ensureConnected() {
-        synchronized(lock) {
-            if (!connected) {
-                throw IOException("Hyena must be connected first!")
+    constructor(hyenaAddress: String) {
+        this.hyenaAddress = hyenaAddress
+        this.connectionManager = PeerConnectionManager(hyenaAddress)
+        this.connection = connectionManager.getPeerConnection()
+        Timer().schedule(
+                0,
+                10 * 1000,
+                {
+                    try {
+                        if (keepAliveResponse.get()) {
+                            sendKeepAlive()
+                        } else {
+                            log.error("Resetting connection - no keepalive response")
+                            connection.close()
+                            connection = connectionManager.getPeerConnection()
+                            keepAliveResponse.set(true)
+                        }
+                    } catch(exc: nanomsg.exceptions.IOException) {
+                        keepAliveResponse.set(false)
+                    }
+                }
+        )
+        Timer().schedule(
+                500,
+                200,
+                {
+                    try {
+                        receiveData()
+                    } catch(exc: EAgainException) {
+                        // It means no message was waiting in nanomsg and we'll try later
+                    }
+                }
+        )
+    }
+
+    private fun sendKeepAlive() {
+        val bytes = MessageBuilder.buildKeepAliveRequest()
+        connection.synchronizedReq(bytes)
+
+    }
+
+    fun sendRequest(message: ByteArray) : Future<*> {
+        val messageId = UUID.randomUUID().leastSignificantBits
+        val future = CompletableFuture<Any>()
+        requests[messageId] = future
+        connection.synchronizedReq(request = MessageBuilder.wrapRequestIntoPeerRequest(PeerRequestType.Request, messageId, message))
+        return future
+    }
+
+    private fun receiveData() {
+        val replyBuf = connection.getSynRespBufferNoWait()
+        val reply = MessageDecoder.decodePeerReply(replyBuf)
+        when(reply) {
+            is KeepAliveReply -> keepAliveResponse.set(true)
+            is ResponseReply -> {
+                val future = requests.remove(reply.messageId)
+                if (future == null) {
+                    throw Exception("No message of id ${reply.messageId} found in registry")
+                } else {
+                    future.complete(MessageDecoder.decode(reply.bufferPayload))
+                }
             }
-        }
-    }
-
-    @Throws(IOException::class, DeserializationException::class)
-    open fun executeControlRequest() {
-        ensureConnected()
-
-        try {
-            var replyBuf: ByteBuffer? = null
-            synchronized(lock) {
-                s.send(MessageBuilder.buildConnectMessage())
-                replyBuf = s.recv()
+            is ResponseReplyError -> {
+                val future = requests.remove(reply.messageId)
+                if (future == null) {
+                    throw Exception("No message of id ${reply.messageId} found in registry")
+                } else {
+                    future.completeExceptionally(IOException("Hyena: PeerReplyError for message: ${reply.messageId}"))
+                }
             }
-            return MessageDecoder.decodeControlReply(replyBuf!!)
-        } catch (exc: IOException) {
-            throw IOException("Nanomsg error: " + Nanomsg.getError(), exc)
-        }
-    }
-
-    @Throws(IOException::class, DeserializationException::class)
-    open fun sendAndReceive(message: ByteArray): Reply {
-        ensureConnected()
-
-        try {
-            var replyBuf: ByteBuffer? = null
-            synchronized(lock) {
-                s.send(message)
-                val array = s.recvBytes()
-                replyBuf = ByteBuffer.wrap(array)
-                replyBuf!!.order(ByteOrder.LITTLE_ENDIAN)
-            }
-            return MessageDecoder.decode(replyBuf!!)
-        } catch (exc: IOException) {
-            throw IOException("Nanomsg error: " + Nanomsg.getError(), exc)
-        }
-    }
-
-    @Throws(IOException::class)
-    internal fun connect(url: String) {
-        synchronized(lock) {
-            log.info("Opening new connection to: " + url)
-            s.setSocketOpt(Nanomsg.SocketOption.NN_RCVTIMEO, 60000)
-            s.setSocketOpt(Nanomsg.SocketOption.NN_SNDTIMEO, 60000)
-            s.connect(url)
-            log.info("Connection successfully opened")
-            this.connected = true
-        }
-    }
-
-    @Throws(IOException::class)
-    internal fun finalize() {
-        synchronized(lock) {
-            s.close()
         }
     }
 
     companion object {
-        private val log = Logger.get(HyenaConnection::class.java)
-        private val lock = Object()
+        private val log = Logger.get(ConnectionManager::class.java)
     }
 }

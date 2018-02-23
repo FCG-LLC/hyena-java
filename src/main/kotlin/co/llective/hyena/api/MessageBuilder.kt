@@ -13,7 +13,49 @@ object MessageBuilder {
         val baos = ByteArrayOutputStream()
         val dos = LittleEndianDataOutputStream(baos)
 
+        // ControlRequest enum, now has only one value - CreateSocket
         dos.writeInt(0)
+
+        baos.close()
+        return baos.toByteArray()
+    }
+
+    fun buildKeepAliveRequest(): ByteArray {
+        val baos = ByteArrayOutputStream()
+        val dos = LittleEndianDataOutputStream(baos)
+
+        // ControlRequest enum, now has only one value - CreateSocket
+        dos.writeInt(PeerRequestType.KeepAlive.ordinal)
+
+        baos.close()
+        return baos.toByteArray()
+    }
+
+    fun wrapRequestIntoPeerRequest(requestType: PeerRequestType, messageId: Long, message: ByteArray? = null): ByteArray {
+        val baos = ByteArrayOutputStream()
+        val dos = LittleEndianDataOutputStream(baos)
+
+        val typeId = PeerRequestType.values().indexOf(requestType)
+        dos.writeInt(typeId)
+
+        when (requestType) {
+            PeerRequestType.Request -> {
+                dos.writeLong(messageId)
+                if (message!!.isEmpty()) {
+                    //option=false
+                    dos.write(0)
+                } else {
+                    //option=true
+                    dos.write(1)
+                    dos.writeLong(message.size.toLong())
+                    dos.write(message)
+                }
+            }
+            PeerRequestType.Abort -> {
+                dos.writeLong(messageId)
+            }
+            PeerRequestType.CloseConnection, PeerRequestType.KeepAlive -> {} //no need for additional payload
+        }
 
         baos.close()
         return baos.toByteArray()

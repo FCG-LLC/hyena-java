@@ -7,6 +7,19 @@ import java.lang.IllegalArgumentException
 import java.math.BigInteger
 import java.util.*
 
+
+enum class PeerRequestType {
+    Request,
+    Abort,
+    CloseConnection,
+    KeepAlive
+}
+
+enum class PeerReplyType {
+    Response,
+    KeepAlive
+}
+
 enum class ApiRequest {
     ListColumns,
     Insert,
@@ -284,7 +297,8 @@ open class DenseBlock<T: Number> : Block {
         return if (data.isEmpty()) {
             "Empty"
         } else {
-            data.drop(1).fold("${data[0]}", { str, num -> "$str, $num" })
+            data.foldIndexed(StringBuffer(), { i, sb, v -> sb.append("$i: $v, ") })
+                    .toString()
         }
     }
 }
