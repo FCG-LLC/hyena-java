@@ -16,6 +16,12 @@ fun reduceColumns(columns: List<Column>) =
         columns.map { column -> column.toString() }.reduce { x, y -> x + ", " + y }
     }
 
+fun <T> eitherToString(either: Either<T, ApiError>, success: (T) -> String): String =
+    when(either) {
+        is Left -> success(either.value)
+        is Right -> "error=\"" + either.value + "\""
+    }
+
 fun printReply(reply: Reply) {
     when (reply) {
         is ListColumnsReply -> println(reply)
@@ -25,12 +31,14 @@ fun printReply(reply: Reply) {
                     + "], partitions=#" + reply.result.availablePartitions.size + ")")
         }
         is AddColumnReply -> {
-            println("AddColumnReply(" +
-                    when(reply.result) {
-                        is Left -> "id=" + reply.result.value
-                        is Right -> "error=\"" + reply.result.value + "\""
-                    } +
-                    ")")
+            println("AddColumnReply("
+                    + eitherToString(reply.result) {value -> "id=" + value }
+                    + ")")
+        }
+        is InsertReply -> {
+            println("InsertReply("
+                    + eitherToString(reply.result) {result: Int -> "num=" + result}
+                    + ")")
         }
     }
 }
