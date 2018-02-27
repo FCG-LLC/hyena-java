@@ -22,6 +22,16 @@ fun <T> eitherToString(either: Either<T, ApiError>, success: (T) -> String): Str
         is Right -> "error=\"" + either.value + "\""
     }
 
+fun printScanResult(result: ScanResult): String =
+    "data=[" + result.data.map {triple ->
+        "{id=" + triple.columnId +
+        ", type=" + triple.columnType +
+        ", block=" + if (triple.data.isPresent)
+          { "#" + triple.data.get().block.count() }
+          else { "no-data" } +
+        "}"
+    }.reduce {x, y -> x + ", " + y} + "]"
+
 fun printReply(reply: Reply) {
     when (reply) {
         is ListColumnsReply -> println(reply)
@@ -38,6 +48,11 @@ fun printReply(reply: Reply) {
         is InsertReply -> {
             println("InsertReply("
                     + eitherToString(reply.result) {result: Int -> "num=" + result}
+                    + ")")
+        }
+        is ScanReply -> {
+            println("ScanReply("
+                    + eitherToString(reply.result) { result -> printScanResult(result) }
                     + ")")
         }
     }
