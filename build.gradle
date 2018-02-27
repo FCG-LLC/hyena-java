@@ -120,3 +120,14 @@ task gentestJar(type: Jar) {
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar
 }
+
+task parsemsgJar(type: Jar) {
+  manifest {
+    attributes 'Implementation-Title': 'Hyena API REPL',
+            'Implementation-Version': version,
+            'Main-Class': 'co.llective.hyena.util.ParseMsgKt'
+  }
+  baseName = project.name + '-parsemsg'
+  from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+  with jar
+}

@@ -179,6 +179,7 @@ object MessageDecoder {
         return BlockHolder(type, block)
     }
 
+    @Suppress("UNCHECKED_CAST")
     private fun <T: Number> fillDenseBlock(denseBlock: DenseBlock<T>, vectorLen: Int, buf: ByteBuffer): DenseBlock<T> {
         for (i in 0 until vectorLen) {
             when (denseBlock.type) {

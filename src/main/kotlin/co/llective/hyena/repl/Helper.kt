@@ -56,6 +56,7 @@ object Helper {
         return fillRandomSparseBlock(sparseBlock, n)
     }
 
+    @Suppress("UNCHECKED_CAST")
     private fun <T: Number> fillRandomSparseBlock(sparseBlock: SparseBlock<T>, n: Int): SparseBlock<T> {
         val generator = Random()
         val offsets = (0 until n).map { generator.nextInt(Int.MAX_VALUE) }
