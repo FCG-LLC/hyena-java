@@ -25,7 +25,12 @@ fun printReply(reply: Reply) {
                     + "], partitions=#" + reply.result.availablePartitions.size + ")")
         }
         is AddColumnReply -> {
-
+            println("AddColumnReply(" +
+                    when(reply.result) {
+                        is Left -> "id=" + reply.result.value
+                        is Right -> "error=\"" + reply.result.value + "\""
+                    } +
+                    ")")
         }
     }
 }
