@@ -15,7 +15,7 @@ import java.util.*
 /**
  * Thread-safe (synchronized) abstract nanomsg connection.
  */
-abstract class NanoConnection(private val socketAddress: String, private var connected: Boolean = false) {
+abstract class NanoConnection(val socketAddress: String, private var connected: Boolean = false) {
 
     internal val lock = Object()
     internal abstract var socket: Socket

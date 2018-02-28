@@ -5,7 +5,6 @@ import co.llective.hyena.PeerConnectionManager
 import io.airlift.log.Logger
 import nanomsg.exceptions.EAgainException
 import java.io.IOException
-import java.lang.Thread.sleep
 import java.nio.charset.Charset
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -19,7 +18,6 @@ open class HyenaApi internal constructor(private val connection: ConnectionManag
 
     private fun <T, C> makeApiCall(message: ByteArray, expected: Class<C>, extract: (C) -> T): T {
         val replyFuture = connection.sendRequest(message)
-        sleep(Random().nextDouble().times(1000).toLong())
         val reply = replyFuture.get()
 
         @Suppress("UNCHECKED_CAST")
@@ -96,17 +94,36 @@ open class HyenaApi internal constructor(private val connection: ConnectionManag
     }
 }
 
-class ConnectionManager {
+open class ConnectionManager {
     private val hyenaAddress: String
     private var connectionManager: PeerConnectionManager
     private var connection: PeerConnection
     private val requests : ConcurrentHashMap<Long, CompletableFuture<Any>> = ConcurrentHashMap()
     private val keepAliveResponse: AtomicBoolean = AtomicBoolean(true)
 
-    constructor(hyenaAddress: String) {
+    constructor(hyenaAddress: String, connectionManager: PeerConnectionManager) {
         this.hyenaAddress = hyenaAddress
-        this.connectionManager = PeerConnectionManager(hyenaAddress)
+        this.connectionManager = connectionManager
         this.connection = connectionManager.getPeerConnection()
+        scheduleKeepAliveThread(connectionManager)
+        scheduleDataReceiverThread()
+    }
+
+    private fun scheduleDataReceiverThread() {
+        Timer().schedule(
+                500,
+                200,
+                {
+                    try {
+                        receiveData()
+                    } catch (exc: EAgainException) {
+                        // It means no message was waiting in nanomsg and we'll try later
+                    }
+                }
+        )
+    }
+
+    private fun scheduleKeepAliveThread(connectionManager: PeerConnectionManager) {
         Timer().schedule(
                 0,
                 10 * 1000,
@@ -120,23 +137,15 @@ class ConnectionManager {
                             connection = connectionManager.getPeerConnection()
                             keepAliveResponse.set(true)
                         }
-                    } catch(exc: nanomsg.exceptions.IOException) {
+                    } catch (exc: nanomsg.exceptions.IOException) {
+                        log.error("Timeout on ${connection.socketAddress} socket", exc)
                         keepAliveResponse.set(false)
                     }
                 }
         )
-        Timer().schedule(
-                500,
-                200,
-                {
-                    try {
-                        receiveData()
-                    } catch(exc: EAgainException) {
-                        // It means no message was waiting in nanomsg and we'll try later
-                    }
-                }
-        )
     }
+
+    internal constructor(hyenaAddress: String) : this(hyenaAddress, PeerConnectionManager(hyenaAddress))
 
     private fun sendKeepAlive() {
         val bytes = MessageBuilder.buildKeepAliveRequest()
@@ -144,7 +153,7 @@ class ConnectionManager {
 
     }
 
-    fun sendRequest(message: ByteArray) : Future<*> {
+    open fun sendRequest(message: ByteArray) : Future<*> {
         val messageId = UUID.randomUUID().leastSignificantBits
         val future = CompletableFuture<Any>()
         requests[messageId] = future
