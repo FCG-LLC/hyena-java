@@ -13,6 +13,8 @@ enum class ApiErrorType(val type: ExtraType) {
     NoData(ExtraType.String),
     InconsistentData(ExtraType.String),
     InvalidScanRequest(ExtraType.String),
+    CatalogError(ExtraType.String),
+    ScanError(ExtraType.String),
     Unknown(ExtraType.String);
 
     enum class ExtraType {
@@ -22,7 +24,9 @@ enum class ApiErrorType(val type: ExtraType) {
     }
 }
 
-data class ApiError(val type: ApiErrorType, val extra: Optional<Any>)
+data class ApiError(val type: ApiErrorType, val extra: Optional<Any>) {
+    override fun toString() : String = "${this.type} (${this.extra.orElseGet({""})})"
+}
 
 sealed class Reply
 data class ListColumnsReply(val columns: List<Column>) : Reply()
