@@ -10,7 +10,6 @@ import com.nhaarman.mockito_kotlin.*
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
-import org.junit.Assert.assertEquals
 import java.util.*
 import java.util.concurrent.Future
 
@@ -234,7 +233,7 @@ object ConnectionManagerTest: Spek({
             connectionManager.keepAlive()
             verify(mockedConnection, atLeast(1)).close()
             verify(mockedManager, atLeast(1)).getPeerConnection()
-            assertEquals(true, connectionManager.keepAliveResponse.get())
+            assert.that(connectionManager.keepAliveResponse.get(), equalTo(true))
 
             connectionManager.shutDown()
         }
@@ -250,8 +249,7 @@ object ConnectionManagerTest: Spek({
             val connectionManager = ConnectionManager(hyenaAddress, mockedManager)
 
             connectionManager.keepAlive()
-            val spiedKeepAliveResponse = spy(connectionManager.keepAliveResponse)
-            verify(spiedKeepAliveResponse).set(false)
+            assert.that(false, equalTo(connectionManager.keepAliveResponse.get()))
 
             connectionManager.shutDown()
         }

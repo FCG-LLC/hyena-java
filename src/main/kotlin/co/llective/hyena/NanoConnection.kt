@@ -15,7 +15,7 @@ import java.util.*
 /**
  * Thread-safe (synchronized) abstract nanomsg connection.
  */
-abstract class NanoConnection(val socketAddress: String, private var connected: Boolean = false) {
+abstract class NanoConnection(val socketAddress: String, internal var connected: Boolean = false) {
 
     internal val lock = Object()
     internal abstract var socket: Socket
@@ -110,7 +110,7 @@ open class PeerConnectionManager(socketAddress: String): NanoConnection(socketAd
      * @param request ByteArray written with LittleEndianess
      * @return ByteBuffer in Little Endian order
      */
-    private fun synchronizedReqResp(request: ByteArray): ByteBuffer? {
+    internal fun synchronizedReqResp(request: ByteArray): ByteBuffer? {
         ensureConnection()
 
         try {
@@ -133,7 +133,7 @@ open class PeerConnectionManager(socketAddress: String): NanoConnection(socketAd
      * Issues PeerConnection to hyena.
      * @return Initialized split connection to hyena.
      */
-    open internal fun getPeerConnection() : PeerConnection {
+    internal open fun getPeerConnection() : PeerConnection {
         val issueConnectionMessage = MessageBuilder.buildConnectMessage()
         val responseBuffer = synchronizedReqResp(issueConnectionMessage)
         val connectionResponse = MessageDecoder.decodeControlReply(responseBuffer!!)
