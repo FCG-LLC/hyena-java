@@ -94,6 +94,11 @@ open class HyenaApi internal constructor(private val connection: ConnectionManag
     }
 }
 
+private const val RECEIVE_START_DELAY_MS: Long = 500L       //500ms
+private const val RECEIVE_INTERVAL_MS: Long = 200L          //200ms
+private const val KEEP_ALIVE_START_DELAY_MS: Long = 0L
+private const val KEEP_ALIVE_INTERVAL_MS: Long = 10 * 1000L //10s
+
 open class ConnectionManager {
     private val hyenaAddress: String
     private var connectionManager: PeerConnectionManager
@@ -111,8 +116,8 @@ open class ConnectionManager {
 
     private fun scheduleDataReceiverThread() {
         Timer().schedule(
-                500,
-                200,
+                RECEIVE_START_DELAY_MS,
+                RECEIVE_INTERVAL_MS,
                 {
                     try {
                         receiveData()
@@ -125,24 +130,28 @@ open class ConnectionManager {
 
     private fun scheduleKeepAliveThread(connectionManager: PeerConnectionManager) {
         Timer().schedule(
-                0,
-                10 * 1000,
+                KEEP_ALIVE_START_DELAY_MS,
+                KEEP_ALIVE_INTERVAL_MS,
                 {
-                    try {
-                        if (keepAliveResponse.get()) {
-                            sendKeepAlive()
-                        } else {
-                            log.error("Resetting connection - no keepalive response")
-                            connection.close()
-                            connection = connectionManager.getPeerConnection()
-                            keepAliveResponse.set(true)
-                        }
-                    } catch (exc: nanomsg.exceptions.IOException) {
-                        log.error("Timeout on ${connection.socketAddress} socket", exc)
-                        keepAliveResponse.set(false)
-                    }
+                    keepAlive(connectionManager)
                 }
         )
+    }
+
+    private fun keepAlive(connectionManager: PeerConnectionManager) {
+        try {
+            if (keepAliveResponse.get()) {
+                sendKeepAlive()
+            } else {
+                log.error("Resetting connection - no keepalive response")
+                connection.close()
+                connection = connectionManager.getPeerConnection()
+                keepAliveResponse.set(true)
+            }
+        } catch (exc: nanomsg.exceptions.IOException) {
+            log.error("Timeout on ${connection.socketAddress} socket", exc)
+            keepAliveResponse.set(false)
+        }
     }
 
     internal constructor(hyenaAddress: String) : this(hyenaAddress, PeerConnectionManager(hyenaAddress))

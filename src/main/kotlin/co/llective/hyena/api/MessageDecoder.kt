@@ -6,12 +6,6 @@ import java.nio.ByteBuffer
 import java.util.*
 import kotlin.experimental.and
 
-
-sealed class PeerReply
-class KeepAliveReply : PeerReply()
-data class ResponseReply(val messageId: Long, val bufferPayload: ByteBuffer) : PeerReply()
-data class ResponseReplyError(val messageId: Long) : PeerReply()
-
 object MessageDecoder {
 
     fun decode(buf: ByteBuffer): Reply {

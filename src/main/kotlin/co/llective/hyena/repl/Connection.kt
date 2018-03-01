@@ -5,7 +5,7 @@ import io.airlift.log.Logger
 
 @Suppress("unused")
 class Connection(address: String) {
-    val hyena: HyenaApi = HyenaApi(address)//HyenaApi()
+    val hyena: HyenaApi = HyenaApi(address)
     private val log = Logger.get(HyenaApi::class.java)
 
     fun listColumns() {

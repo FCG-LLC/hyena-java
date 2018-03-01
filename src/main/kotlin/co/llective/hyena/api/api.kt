@@ -5,8 +5,8 @@ import org.apache.commons.lang3.StringUtils
 import java.io.DataOutput
 import java.lang.IllegalArgumentException
 import java.math.BigInteger
+import java.nio.ByteBuffer
 import java.util.*
-
 
 enum class PeerRequestType {
     Request,
@@ -127,6 +127,11 @@ enum class BlockType {
             BlockType.String -> Size.Varying
         }
 }
+
+sealed class PeerReply
+class KeepAliveReply : PeerReply()
+data class ResponseReply(val messageId: Long, val bufferPayload: ByteBuffer) : PeerReply()
+data class ResponseReplyError(val messageId: Long) : PeerReply()
 
 enum class FilterType {
     I8,
