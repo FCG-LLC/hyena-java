@@ -1,15 +1,16 @@
 package co.llective.hyena.api
 
+import co.llective.hyena.PeerConnection
+import co.llective.hyena.PeerConnectionManager
 import com.natpryce.hamkrest.assertion.assert
 import com.natpryce.hamkrest.equalTo
 import com.natpryce.hamkrest.sameInstance
 import com.natpryce.hamkrest.throws
-import com.nhaarman.mockito_kotlin.any
-import com.nhaarman.mockito_kotlin.doReturn
-import com.nhaarman.mockito_kotlin.mock
+import com.nhaarman.mockito_kotlin.*
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
+import org.junit.Assert.assertEquals
 import java.util.*
 import java.util.concurrent.Future
 
@@ -194,6 +195,65 @@ object HyenaApiTest : Spek({
             val req = ScanRequest(0, 10, partitionIds, listOf(), listOf())
             val reply = sut.scan(req)
             assert.that(scanResult, sameInstance(reply))
+        }
+    }
+})
+
+object ConnectionManagerTest: Spek({
+
+    val hyenaAddress = "hyenaAddress"
+
+    describe("KeepAlive") {
+        it("sends keep alive request when socket looks fine") {
+            val serializedKeepAliveReq = MessageBuilder.buildKeepAliveRequest()
+            val mockedConnection = mock<PeerConnection> {}
+            doNothing().whenever(mockedConnection).synchronizedReq(serializedKeepAliveReq)
+            doNothing().whenever(mockedConnection).close()
+            val mockedManager = mock<PeerConnectionManager> {
+                on { getPeerConnection() } doReturn mockedConnection
+            }
+            val connectionManager = ConnectionManager(hyenaAddress, mockedManager)
+
+            connectionManager.keepAlive()
+            verify(mockedConnection, atLeast(1)).synchronizedReq(serializedKeepAliveReq)
+
+            connectionManager.shutDown()
+        }
+
+        it("resets connection when keep alive failed") {
+            val serializedKeepAliveReq = MessageBuilder.buildKeepAliveRequest()
+            val mockedConnection = mock<PeerConnection> {}
+            doNothing().whenever(mockedConnection).synchronizedReq(serializedKeepAliveReq)
+            doNothing().whenever(mockedConnection).close()
+            val mockedManager = mock<PeerConnectionManager> {
+                on { getPeerConnection() } doReturn mockedConnection
+            }
+            val connectionManager = ConnectionManager(hyenaAddress, mockedManager)
+            connectionManager.keepAliveResponse.set(false)
+
+            connectionManager.keepAlive()
+            verify(mockedConnection, atLeast(1)).close()
+            verify(mockedManager, atLeast(1)).getPeerConnection()
+            assertEquals(true, connectionManager.keepAliveResponse.get())
+
+            connectionManager.shutDown()
+        }
+
+        it("fails keep alive when timeout on socket") {
+            val serializedKeepAliveReq = MessageBuilder.buildKeepAliveRequest()
+            val mockedConnection = mock<PeerConnection> {}
+            doThrow(nanomsg.exceptions.IOException("")).whenever(mockedConnection).synchronizedReq(serializedKeepAliveReq)
+            doNothing().whenever(mockedConnection).close()
+            val mockedManager = mock<PeerConnectionManager> {
+                on { getPeerConnection() } doReturn mockedConnection
+            }
+            val connectionManager = ConnectionManager(hyenaAddress, mockedManager)
+
+            connectionManager.keepAlive()
+            val spiedKeepAliveResponse = spy(connectionManager.keepAliveResponse)
+            verify(spiedKeepAliveResponse).set(false)
+
+            connectionManager.shutDown()
         }
     }
 })

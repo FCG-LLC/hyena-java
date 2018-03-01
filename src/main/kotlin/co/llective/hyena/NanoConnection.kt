@@ -50,7 +50,7 @@ abstract class NanoConnection(val socketAddress: String, private var connected: 
         return replyBuf
     }
 
-    fun synchronizedReq(request: ByteArray) {
+    open fun synchronizedReq(request: ByteArray) {
         ensureConnection()
 
         try {
@@ -65,7 +65,7 @@ abstract class NanoConnection(val socketAddress: String, private var connected: 
     /**
      * Closes socket connection. Invalidates socket.
      */
-    fun close() {
+    open fun close() {
         //TODO: send abort message
         synchronized(lock) {
             if (connected) {
@@ -83,7 +83,7 @@ abstract class NanoConnection(val socketAddress: String, private var connected: 
 /**
  * PairSocket over Nanomsg.
  */
-class PeerConnection(val connectionId: Long, socketAddress: String) : NanoConnection(socketAddress) {
+open class PeerConnection(val connectionId: Long, socketAddress: String) : NanoConnection(socketAddress) {
     override var socket: Socket = PairSocket()
 
     override fun newSocketInstance(): Socket = PairSocket()
@@ -100,7 +100,7 @@ class PeerConnection(val connectionId: Long, socketAddress: String) : NanoConnec
  * Connection for issuing further connections to Hyena.
  * ReqRepSocket over Nanomsg.
  */
-class PeerConnectionManager(socketAddress: String): NanoConnection(socketAddress) {
+open class PeerConnectionManager(socketAddress: String): NanoConnection(socketAddress) {
     override var socket: Socket = ReqSocket()
 
     override fun newSocketInstance(): Socket = ReqSocket()
@@ -133,7 +133,7 @@ class PeerConnectionManager(socketAddress: String): NanoConnection(socketAddress
      * Issues PeerConnection to hyena.
      * @return Initialized split connection to hyena.
      */
-    fun getPeerConnection() : PeerConnection {
+    open internal fun getPeerConnection() : PeerConnection {
         val issueConnectionMessage = MessageBuilder.buildConnectMessage()
         val responseBuffer = synchronizedReqResp(issueConnectionMessage)
         val connectionResponse = MessageDecoder.decodeControlReply(responseBuffer!!)

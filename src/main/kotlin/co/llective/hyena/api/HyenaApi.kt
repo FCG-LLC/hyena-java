@@ -104,18 +104,20 @@ open class ConnectionManager {
     private var connectionManager: PeerConnectionManager
     private var connection: PeerConnection
     private val requests : ConcurrentHashMap<Long, CompletableFuture<Any>> = ConcurrentHashMap()
-    private val keepAliveResponse: AtomicBoolean = AtomicBoolean(true)
+    internal val keepAliveResponse: AtomicBoolean = AtomicBoolean(true)
+    private val receiveScheduler = Timer()
+    private val keepAliveScheduler = Timer()
 
-    constructor(hyenaAddress: String, connectionManager: PeerConnectionManager) {
+    internal constructor(hyenaAddress: String, connectionManager: PeerConnectionManager) {
         this.hyenaAddress = hyenaAddress
         this.connectionManager = connectionManager
         this.connection = connectionManager.getPeerConnection()
-        scheduleKeepAliveThread(connectionManager)
+        scheduleKeepAliveThread()
         scheduleDataReceiverThread()
     }
 
     private fun scheduleDataReceiverThread() {
-        Timer().schedule(
+        receiveScheduler.schedule(
                 RECEIVE_START_DELAY_MS,
                 RECEIVE_INTERVAL_MS,
                 {
@@ -128,17 +130,17 @@ open class ConnectionManager {
         )
     }
 
-    private fun scheduleKeepAliveThread(connectionManager: PeerConnectionManager) {
-        Timer().schedule(
+    private fun scheduleKeepAliveThread() {
+        keepAliveScheduler.schedule(
                 KEEP_ALIVE_START_DELAY_MS,
                 KEEP_ALIVE_INTERVAL_MS,
                 {
-                    keepAlive(connectionManager)
+                    keepAlive()
                 }
         )
     }
 
-    private fun keepAlive(connectionManager: PeerConnectionManager) {
+    internal fun keepAlive() {
         try {
             if (keepAliveResponse.get()) {
                 sendKeepAlive()
@@ -154,7 +156,7 @@ open class ConnectionManager {
         }
     }
 
-    internal constructor(hyenaAddress: String) : this(hyenaAddress, PeerConnectionManager(hyenaAddress))
+    constructor(hyenaAddress: String) : this(hyenaAddress, PeerConnectionManager(hyenaAddress))
 
     private fun sendKeepAlive() {
         val bytes = MessageBuilder.buildKeepAliveRequest()
@@ -192,6 +194,15 @@ open class ConnectionManager {
                 }
             }
         }
+    }
+
+    /**
+     * Shuts down all connections and scheduled tasks.
+     */
+    internal fun shutDown() {
+        keepAliveScheduler.cancel()
+        receiveScheduler.cancel()
+        connection.close()
     }
 
     companion object {
