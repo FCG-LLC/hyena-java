@@ -137,8 +137,8 @@ object MessageDecoderTest : Spek({
                 (number++).takeIf { it < 0 }
             }
 
-            var short : Short = Byte.MAX_VALUE.toShort()
-            for (byte : Byte in sequence) {
+            var short: Short = Byte.MAX_VALUE.toShort()
+            for (byte: Byte in sequence) {
                 // compares that sequence to corresponding 128..255 values
                 assert.that(byte.toUnsignedShort(), equalTo(++short))
             }
@@ -150,14 +150,14 @@ object MessageDecoderTest : Spek({
             val sequence = generateSequence {
                 (number--).takeIf { it > 0 }
             }
-            for (byte : Byte in sequence) {
+            for (byte: Byte in sequence) {
                 assert.that(byte.toUnsignedShort(), equalTo(byte.toShort()))
             }
         }
 
         it("Leaves 0 as it is") {
-            val zeroByte : Byte = 0
-            val zeroShort : Short = 0
+            val zeroByte: Byte = 0
+            val zeroShort: Short = 0
             assert.that(zeroByte.toUnsignedShort(), equalTo(zeroShort))
         }
     }

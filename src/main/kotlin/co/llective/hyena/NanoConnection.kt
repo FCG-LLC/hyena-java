@@ -30,7 +30,6 @@ abstract class NanoConnection(val socketAddress: String, internal var connected:
                 socket.setSocketOpt(Nanomsg.SocketOption.NN_RCVTIMEO, 60000)
                 socket.setSocketOpt(Nanomsg.SocketOption.NN_SNDTIMEO, 60000)
                 socket.connect(socketAddress)
-                log.info("Connection successfully opened")
                 connected = true
             }
         }
@@ -100,7 +99,7 @@ open class PeerConnection(val connectionId: Long, socketAddress: String) : NanoC
  * Connection for issuing further connections to Hyena.
  * ReqRepSocket over Nanomsg.
  */
-open class PeerConnectionManager(socketAddress: String): NanoConnection(socketAddress) {
+open class PeerConnectionManager(socketAddress: String) : NanoConnection(socketAddress) {
     override var socket: Socket = ReqSocket()
 
     override fun newSocketInstance(): Socket = ReqSocket()
@@ -133,7 +132,7 @@ open class PeerConnectionManager(socketAddress: String): NanoConnection(socketAd
      * Issues PeerConnection to hyena.
      * @return Initialized split connection to hyena.
      */
-    internal open fun getPeerConnection() : PeerConnection {
+    internal open fun getPeerConnection(): PeerConnection {
         val issueConnectionMessage = MessageBuilder.buildConnectMessage()
         val responseBuffer = synchronizedReqResp(issueConnectionMessage)
         val connectionResponse = MessageDecoder.decodeControlReply(responseBuffer!!)

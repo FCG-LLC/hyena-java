@@ -41,9 +41,9 @@ object MessageDecoder {
         }
     }
 
-    fun decodePeerReply(buf: ByteBuffer) : PeerReply {
+    fun decodePeerReply(buf: ByteBuffer): PeerReply {
         val replyType = PeerReplyType.values()[buf.int]
-        when(replyType) {
+        when (replyType) {
             PeerReplyType.KeepAlive -> return KeepAliveReply()
             PeerReplyType.Response -> {
                 val replyMessageId = buf.long
@@ -214,7 +214,7 @@ object MessageDecoder {
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun <T: Number> fillDenseBlock(denseBlock: DenseBlock<T>, vectorLen: Int, buf: ByteBuffer): DenseBlock<T> {
+    private fun <T : Number> fillDenseBlock(denseBlock: DenseBlock<T>, vectorLen: Int, buf: ByteBuffer): DenseBlock<T> {
         for (i in 0 until vectorLen) {
             when (denseBlock.type) {
                 BlockType.I8Dense -> (denseBlock as DenseBlock<Byte>).add(buf.get())
@@ -234,7 +234,7 @@ object MessageDecoder {
         return denseBlock
     }
 
-    private fun <T: Number> fillSparseBlock(sparseBlock: SparseBlock<T>, vectorsLen: Int, buf: ByteBuffer): SparseBlock<T> {
+    private fun <T : Number> fillSparseBlock(sparseBlock: SparseBlock<T>, vectorsLen: Int, buf: ByteBuffer): SparseBlock<T> {
         val type = sparseBlock.type
 
         // deserialize values vector (size is already taken from buffer)
@@ -277,7 +277,7 @@ object MessageDecoder {
      *
      * E.g. -2 -> 254
      */
-    fun Byte.toUnsignedShort() : Short {
+    fun Byte.toUnsignedShort(): Short {
         return ((this.toShort()) and 0xff)
     }
 

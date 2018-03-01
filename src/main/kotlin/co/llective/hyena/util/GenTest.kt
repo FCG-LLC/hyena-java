@@ -30,19 +30,19 @@ fun getOptions(): Options {
 
     options.addOption("h", "help", false, "Prints this help")
     options.addRequiredOption("c", "command", true, "Valid command (catalog, columns, addcolumn, insert, scan)")
-    options.addRequiredOption("o", "output",  true, "Name of a file to put output to")
-    options.addOption("n", "column-name",     true, "Name of the column")
-    options.addOption("t", "column-type",     true, "Type of the column")
-    options.addOption("r", "rows",            true, "Number of rows to insert")
-    options.addOption("s", "source-id",       true, "Source id")
-    options.addOption("i", "id",              true, "Id of the column")
-    options.addOption("m", "min-ts",          true, "Lower bound for timestamps")
-    options.addOption("x", "max-ts",          true, "Upper bound for timestamps")
-    options.addOption("u", "uuid",            false, "Add a random partition UUID")
-    options.addOption("l", "filter-column",   true, "Column id for the filter")
-    options.addOption("f", "filter-type",     true, "Filter type, one of: I8, I16, I32, I64, U8, U16, U32, U64")
+    options.addRequiredOption("o", "output", true, "Name of a file to put output to")
+    options.addOption("n", "column-name", true, "Name of the column")
+    options.addOption("t", "column-type", true, "Type of the column")
+    options.addOption("r", "rows", true, "Number of rows to insert")
+    options.addOption("s", "source-id", true, "Source id")
+    options.addOption("i", "id", true, "Id of the column")
+    options.addOption("m", "min-ts", true, "Lower bound for timestamps")
+    options.addOption("x", "max-ts", true, "Upper bound for timestamps")
+    options.addOption("u", "uuid", false, "Add a random partition UUID")
+    options.addOption("l", "filter-column", true, "Column id for the filter")
+    options.addOption("f", "filter-type", true, "Filter type, one of: I8, I16, I32, I64, U8, U16, U32, U64")
     options.addOption("p", "filter-operator", true, "Filter operator, one of: LT, LTEQ, EQ, GTEQ, GT, NOTEQ")
-    options.addOption("v", "filter-value",    true, "Filter value")
+    options.addOption("v", "filter-value", true, "Filter value")
 
     return options
 }
@@ -122,7 +122,7 @@ fun genInsert(options: GenOptions) {
     val timestamps = Helper.randomTimestamps(options.rows)
     val data = (0 until options.columnIds.size).map { i ->
         ColumnData(options.columnIds[i].toInt(),
-                   genBlock(options.rows, options.blockTypes[i]))
+                genBlock(options.rows, options.blockTypes[i]))
     }.toTypedArray()
 
     val request = MessageBuilder.buildInsertMessage(options.sourceId, timestamps, *data)
@@ -130,11 +130,11 @@ fun genInsert(options: GenOptions) {
 }
 
 fun genBlock(rows: Int, blockType: BlockType): Block =
-    if (blockType.isDense()) {
-        Helper.randomDenseBlock(rows, blockType)
-    } else {
-        Helper.randomSparseBlock(rows, blockType)
-    }
+        if (blockType.isDense()) {
+            Helper.randomDenseBlock(rows, blockType)
+        } else {
+            Helper.randomSparseBlock(rows, blockType)
+        }
 
 fun genAddColumns(options: GenOptions) {
     if (options.blockTypes.size < 1 || options.columnNames.size < 1) {

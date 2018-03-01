@@ -103,7 +103,7 @@ open class ConnectionManager {
     private val hyenaAddress: String
     private var connectionManager: PeerConnectionManager
     private var connection: PeerConnection
-    private val requests : ConcurrentHashMap<Long, CompletableFuture<Any>> = ConcurrentHashMap()
+    private val requests: ConcurrentHashMap<Long, CompletableFuture<Any>> = ConcurrentHashMap()
     internal val keepAliveResponse: AtomicBoolean = AtomicBoolean(true)
     private val receiveScheduler = Timer()
     private val keepAliveScheduler = Timer()
@@ -164,7 +164,7 @@ open class ConnectionManager {
 
     }
 
-    open fun sendRequest(message: ByteArray) : Future<*> {
+    open fun sendRequest(message: ByteArray): Future<*> {
         val messageId = UUID.randomUUID().leastSignificantBits
         val future = CompletableFuture<Any>()
         requests[messageId] = future
@@ -173,9 +173,10 @@ open class ConnectionManager {
     }
 
     private fun receiveData() {
+        //TODO: do get_bytes in loop until all messages will be taken from socket
         val replyBuf = connection.getSynRespBufferNoWait()
         val reply = MessageDecoder.decodePeerReply(replyBuf)
-        when(reply) {
+        when (reply) {
             is KeepAliveReply -> keepAliveResponse.set(true)
             is ResponseReply -> {
                 val future = requests.remove(reply.messageId)

@@ -198,7 +198,7 @@ object HyenaApiTest : Spek({
     }
 })
 
-object ConnectionManagerTest: Spek({
+object ConnectionManagerTest : Spek({
 
     val hyenaAddress = "hyenaAddress"
 

@@ -9,7 +9,7 @@ import java.util.*
 
 object MessageBuilder {
 
-    fun buildConnectMessage() : ByteArray {
+    fun buildConnectMessage(): ByteArray {
         val baos = ByteArrayOutputStream()
         val dos = LittleEndianDataOutputStream(baos)
 
@@ -54,7 +54,8 @@ object MessageBuilder {
             PeerRequestType.Abort -> {
                 dos.writeLong(messageId)
             }
-            PeerRequestType.CloseConnection, PeerRequestType.KeepAlive -> {} //no need for additional payload
+            PeerRequestType.CloseConnection, PeerRequestType.KeepAlive -> {
+            } //no need for additional payload
         }
 
         baos.close()
