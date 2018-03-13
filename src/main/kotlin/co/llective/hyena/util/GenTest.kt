@@ -3,7 +3,6 @@ package co.llective.hyena.util
 import co.llective.hyena.api.*
 import co.llective.hyena.repl.Helper
 import org.apache.commons.cli.*
-import org.apache.commons.cli.HelpFormatter
 import java.io.File
 import java.util.*
 import kotlin.collections.ArrayList
@@ -123,9 +122,9 @@ fun genInsert(options: GenOptions) {
     val data = (0 until options.columnIds.size).map { i ->
         ColumnData(options.columnIds[i].toInt(),
                 genBlock(options.rows, options.blockTypes[i]))
-    }.toTypedArray()
+    }.toList()
 
-    val request = MessageBuilder.buildInsertMessage(options.sourceId, timestamps, *data)
+    val request = MessageBuilder.buildInsertMessage(options.sourceId, timestamps, data)
     write(options, request)
 }
 

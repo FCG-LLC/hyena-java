@@ -55,8 +55,8 @@ open class HyenaApi internal constructor(private val connection: ConnectionManag
     }
 
     @Throws(IOException::class, ReplyException::class)
-    fun insert(source: Int, timestamps: List<Long>, vararg columnData: ColumnData): Optional<Int> {
-        val message = MessageBuilder.buildInsertMessage(source, timestamps, *columnData)
+    fun insert(source: Int, timestamps: List<Long>, columnData: List<ColumnData>): Optional<Int> {
+        val message = MessageBuilder.buildInsertMessage(source, timestamps, columnData)
         return makeApiCall(message, InsertReply::class.java) { reply ->
             when (reply.result) {
                 is Left -> Optional.of(reply.result.value)
@@ -85,6 +85,13 @@ open class HyenaApi internal constructor(private val connection: ConnectionManag
     fun refreshCatalog(): Catalog {
         val message = MessageBuilder.buildRefreshCatalogMessage()
         return makeApiCall(message, CatalogReply::class.java) { reply -> reply.result }
+    }
+
+    /**
+     * Cleans all resources attached to connection.
+     */
+    fun purge() {
+        connection.shutDown()
     }
 
     companion object {

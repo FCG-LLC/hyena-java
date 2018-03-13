@@ -100,7 +100,7 @@ object HyenaApiTest : Spek({
             val sut = HyenaApi(connectionManager)
 
             val data = ColumnData(100, DenseBlock<Int>(BlockType.I32Dense, 10))
-            assert.that({ sut.insert(10, listOf(), data) }, throws<ReplyException>())
+            assert.that({ sut.insert(10, listOf(), listOf(data)) }, throws<ReplyException>())
         }
 
         it("Correctly extracts the reply") {
@@ -113,7 +113,7 @@ object HyenaApiTest : Spek({
             val sut = HyenaApi(connectionManager)
 
             val data = ColumnData(100, DenseBlock<Int>(BlockType.I32Dense, 10))
-            val reply = sut.insert(10, listOf(), data)
+            val reply = sut.insert(10, listOf(), listOf(data))
             assert.that(true, equalTo(reply.isPresent))
             assert.that(100, equalTo(reply.get()))
         }
@@ -128,7 +128,7 @@ object HyenaApiTest : Spek({
             val sut = HyenaApi(connectionManager)
 
             val data = ColumnData(100, DenseBlock<Int>(BlockType.I32Dense, 10))
-            val reply = sut.insert(10, listOf(), data)
+            val reply = sut.insert(10, listOf(), listOf(data))
             assert.that(false, equalTo(reply.isPresent))
         }
     }

@@ -183,7 +183,7 @@ data class DataTriple(val columnId: Long, val columnType: BlockType, val data: O
 
 data class ScanResult(val data: List<DataTriple>)
 
-open class Column(val dataType: BlockType, val id: Long, val name: String) {
+open class Column(val dataType: BlockType, var id: Long = -1, val name: String) {
     override fun toString(): String = "$name/$id ${dataType.name}"
 }
 
