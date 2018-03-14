@@ -83,7 +83,7 @@ abstract class NanoConnection(val socketAddress: String, internal var connected:
  * PairSocket over Nanomsg.
  */
 open class PeerConnection(val connectionId: Long, socketAddress: String) : NanoConnection(socketAddress) {
-    override var socket: Socket = PairSocket()
+    override lateinit var socket: Socket
 
     override fun newSocketInstance(): Socket = PairSocket()
 
@@ -100,7 +100,7 @@ open class PeerConnection(val connectionId: Long, socketAddress: String) : NanoC
  * ReqRepSocket over Nanomsg.
  */
 open class PeerConnectionManager(socketAddress: String) : NanoConnection(socketAddress) {
-    override var socket: Socket = ReqSocket()
+    override lateinit var socket: Socket
 
     override fun newSocketInstance(): Socket = ReqSocket()
 
