@@ -20,8 +20,8 @@ class Connection(address: String) {
         }
     }
 
-    fun insert(source: Int, timestamps: List<Long>, vararg columnData: ColumnData) {
-        val inserted = hyena.insert(source, timestamps, *columnData)
+    fun insert(source: Int, timestamps: List<Long>, columnData: List<ColumnData>) {
+        val inserted = hyena.insert(source, timestamps, columnData)
         if (inserted.isPresent) {
             println("Inserted ${inserted.get()}")
         }
@@ -30,12 +30,12 @@ class Connection(address: String) {
     fun scan(request: ScanRequest) {
         val result = hyena.scan(request)
         val maxrow = result.data
-                .filter({ d -> d.data.isPresent() })
+                .filter({ d -> d.data.isPresent })
                 .map({ d -> d.data.get().block.count() })
                 .max()
         println("Hyena returned $maxrow rows")
         for (res in result.data) {
-            println("${res}")
+            println("$res")
         }
     }
 

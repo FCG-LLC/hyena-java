@@ -83,7 +83,7 @@ object MessageBuilder {
         return baos.toByteArray()
     }
 
-    fun buildInsertMessage(source: Int, timestamps: List<Long>, vararg columnData: ColumnData): ByteArray {
+    fun buildInsertMessage(source: Int, timestamps: List<Long>, columnData: List<ColumnData>): ByteArray {
         val baos = ByteArrayOutputStream()
         val dos = LittleEndianDataOutputStream(baos)
         dos.writeInt(ApiRequest.Insert.ordinal)
