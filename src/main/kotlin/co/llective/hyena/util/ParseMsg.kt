@@ -10,27 +10,29 @@ fun printUsage() {
 }
 
 fun reduceColumns(columns: List<Column>) =
-    if (columns.isEmpty()) {
-        ""
-    } else {
-        columns.map { column -> column.toString() }.reduce { x, y -> x + ", " + y }
-    }
+        if (columns.isEmpty()) {
+            ""
+        } else {
+            columns.map { column -> column.toString() }.reduce { x, y -> x + ", " + y }
+        }
 
 fun <T> eitherToString(either: Either<T, ApiError>, success: (T) -> String): String =
-    when(either) {
-        is Left -> success(either.value)
-        is Right -> "error=\"" + either.value + "\""
-    }
+        when (either) {
+            is Left -> success(either.value)
+            is Right -> "error=\"" + either.value + "\""
+        }
 
 fun printScanResult(result: ScanResult): String =
-    "data=[" + result.data.map {triple ->
-        "{id=" + triple.columnId +
-        ", type=" + triple.columnType +
-        ", block=" + if (triple.data.isPresent)
-          { "#" + triple.data.get().block.count() }
-          else { "no-data" } +
-        "}"
-    }.reduce {x, y -> x + ", " + y} + "]"
+        "data=[" + result.data.map { triple ->
+            "{id=" + triple.columnId +
+                    ", type=" + triple.columnType +
+                    ", block=" + if (triple.data.isPresent) {
+                "#" + triple.data.get().block.count()
+            } else {
+                "no-data"
+            } +
+                    "}"
+        }.reduce { x, y -> x + ", " + y } + "]"
 
 fun printReply(reply: Reply) {
     when (reply) {
@@ -42,12 +44,12 @@ fun printReply(reply: Reply) {
         }
         is AddColumnReply -> {
             println("AddColumnReply("
-                    + eitherToString(reply.result) {value -> "id=" + value }
+                    + eitherToString(reply.result) { value -> "id=" + value }
                     + ")")
         }
         is InsertReply -> {
             println("InsertReply("
-                    + eitherToString(reply.result) {result: Int -> "num=" + result}
+                    + eitherToString(reply.result) { result: Int -> "num=" + result }
                     + ")")
         }
         is ScanReply -> {

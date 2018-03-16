@@ -79,6 +79,21 @@ enum class BlockType {
     U128Sparse,
     String;
 
+    fun mapToFilterType(): FilterType =
+            when (this) {
+                I8Dense, I8Sparse -> FilterType.I8
+                I16Dense, I16Sparse -> FilterType.I16
+                I32Dense, I32Sparse -> FilterType.I32
+                I64Dense, I64Sparse -> FilterType.I64
+                I128Dense, I128Sparse -> FilterType.I128
+                U8Dense, U8Sparse -> FilterType.U8
+                U16Dense, U16Sparse -> FilterType.U16
+                U32Dense, U32Sparse -> FilterType.U32
+                U64Dense, U64Sparse -> FilterType.U64
+                U128Dense, U128Sparse -> FilterType.U128
+                String -> TODO()
+            }
+
     fun isDense(): Boolean =
             when (this) {
                 BlockType.I8Dense,
