@@ -25,7 +25,7 @@ enum class ApiErrorType(val type: ExtraType) {
 }
 
 data class ApiError(val type: ApiErrorType, val extra: Optional<Any>) {
-    override fun toString() : String = "${this.type} (${this.extra.orElseGet({""})})"
+    override fun toString(): String = "${this.type} (${this.extra.orElseGet({ "" })})"
 }
 
 sealed class Reply
