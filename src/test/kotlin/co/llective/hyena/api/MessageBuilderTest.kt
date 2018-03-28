@@ -5,8 +5,7 @@ import com.natpryce.hamkrest.equalTo
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
-import java.util.Optional
-import java.util.UUID
+import java.util.*
 
 object MessageBuilderTest : Spek({
     describe("Build scan message") {
@@ -55,7 +54,7 @@ object MessageBuilderTest : Spek({
                     1, 0, 0, 0, 0, 0, 0, 0, // 64 bits scan column id
                     scanFilter1.op.ordinal.toByte(), 0, 0, 0, // 32 bits
                     scanFilter1.type.ordinal.toByte(), 0, 0, 0, // 32 bits
-                    (scanFilter1.value as Long).toByte(), 0, 0, 0, 0, 0, 0, 0, // 64 bits
+                    (scanFilter1.value as Long).toByte(), 0, 0, 0, // 32 bits (u32)
                     0, 0, 0, 0, 0, 0, 0, 0 // 64 bits strange 0 no-string value number
             )
 
