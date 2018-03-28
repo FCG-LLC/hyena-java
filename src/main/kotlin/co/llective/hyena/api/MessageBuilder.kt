@@ -218,12 +218,12 @@ object MessageBuilder {
             FilterType.I32 -> dos.writeInt((filter.value as Long).toInt())
             FilterType.I64 -> dos.writeLong(filter.value as Long)
 
-            FilterType.U8 -> dos.writeShort((filter.value as Long).toInt())
-            FilterType.U16 -> dos.writeInt((filter.value as Long).toInt())
-            FilterType.U32 -> dos.writeLong(filter.value as Long)
-            FilterType.U64 -> writeU64(dos, BigInteger.valueOf(filter.value as Long))
+            FilterType.U8 -> dos.writeByte((filter.value as Long).toInt())
+            FilterType.U16 -> dos.writeShort((filter.value as Long).toInt())
+            FilterType.U32 -> dos.writeInt((filter.value as Long).toInt())
+            FilterType.U64 -> dos.writeLong(filter.value as Long)
 
-            FilterType.String -> TODO()
+            else -> TODO()
         }
     }
 }
