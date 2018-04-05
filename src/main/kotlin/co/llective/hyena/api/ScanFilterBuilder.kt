@@ -38,18 +38,6 @@ data class ScanFilterBuilder @JvmOverloads constructor(
     private fun determineFilterType(): FilterType {
         val column = catalog.columns.findLast { col -> col.id == filter.column } ?: throw RuntimeException("Column not found in catalog")
 
-        return when (column.dataType) {
-            BlockType.I8Dense, BlockType.I8Sparse -> FilterType.I8
-            BlockType.U8Dense, BlockType.U8Sparse -> FilterType.U8
-            BlockType.I16Dense, BlockType.I16Sparse -> FilterType.I16
-            BlockType.U16Dense, BlockType.U16Sparse -> FilterType.U16
-            BlockType.I32Dense, BlockType.I32Sparse -> FilterType.I32
-            BlockType.U32Dense, BlockType.U32Sparse -> FilterType.U32
-            BlockType.I64Dense, BlockType.I64Sparse -> FilterType.I64
-            BlockType.U64Dense, BlockType.U64Sparse -> FilterType.U64
-            BlockType.I128Dense, BlockType.I128Sparse -> FilterType.I128
-            BlockType.U128Dense, BlockType.U128Sparse -> FilterType.U128
-            BlockType.String -> FilterType.String
-        }
+        return column.dataType.mapToFilterType()
     }
 }
