@@ -5,6 +5,7 @@ buildscript {
   ext.kotlin_version = '1.2.31'
 
   repositories {
+    maven { url "http://nexus.cs.int/repository/maven-central/" }
     mavenCentral()
   }
   dependencies {
@@ -29,6 +30,7 @@ junitPlatform {
 }
 
 repositories {
+  maven { url "http://nexus.cs.int/repository/maven-central/" }
   mavenCentral()
   maven { url "http://clojars.org/repo/" }
   maven { url "http://dl.bintray.com/jetbrains/spek" }
