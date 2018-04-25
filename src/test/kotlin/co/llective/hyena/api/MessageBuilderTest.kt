@@ -28,7 +28,7 @@ object MessageBuilderTest : Spek({
                     minTs,
                     maxTs,
                     hashSetOf(partitionId1, partitionId2),
-                    listOf(scanFilter1),
+                    ScanOrFilters(ScanAndFilters(scanFilter1)),
                     listOf(col1, col2)
             )
         }
@@ -50,12 +50,13 @@ object MessageBuilderTest : Spek({
                     2, 0, 0, 0, 0, 0, 0, 0, // 64 bits projection list size
                     1, 0, 0, 0, 0, 0, 0, 0, // 64 bits col1 id
                     2, 0, 0, 0, 0, 0, 0, 0, // 64 bits col2 id
-                    1, 0, 0, 0, 0, 0, 0, 0, // 64 bits scan list size
-                    1, 0, 0, 0, 0, 0, 0, 0, // 64 bits scan column id
-                    scanFilter1.op.ordinal.toByte(), 0, 0, 0, // 32 bits
-                    scanFilter1.type.ordinal.toByte(), 0, 0, 0, // 32 bits
-                    (scanFilter1.value as Long).toByte(), 0, 0, 0, // 32 bits (u32)
-                    0, 0, 0, 0, 0, 0, 0, 0 // 64 bits strange 0 no-string value number
+                    1, 0, 0, 0, 0, 0, 0, 0, // 64 bits or filters list size
+                    1, 0, 0, 0, 0, 0, 0, 0, // 64 bits and filters list size
+                    1, 0, 0, 0, 0, 0, 0, 0, // 64 bits scan filter column id
+                    scanFilter1.op.ordinal.toByte(), 0, 0, 0, // 32 bits scan filter operator id
+                    scanFilter1.type.ordinal.toByte(), 0, 0, 0, // 32 bits scan filter type
+                    (scanFilter1.value as Long).toByte(), 0, 0, 0, // 32 bits (u32) scan filter value
+                    0, 0, 0, 0, 0, 0, 0, 0 // 64 bits strange 0 no-string value number (string filter value)
             )
 
             assert.that(
@@ -68,7 +69,7 @@ object MessageBuilderTest : Spek({
             val request = buildWholeScanRequest()
             request.partitionIds = hashSetOf()
             request.projection = emptyList()
-            request.filters = emptyList()
+            request.filters = ScanOrFilters()
 
             val actualBytes = MessageBuilder.buildScanMessage(request)
 

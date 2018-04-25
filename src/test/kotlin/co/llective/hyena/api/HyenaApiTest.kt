@@ -174,7 +174,7 @@ object HyenaApiTest : Spek({
             val partitionIds = HashSet<UUID>()
             partitionIds.add(UUID.randomUUID())
 
-            val req = ScanRequest(0, 10, partitionIds, listOf(), listOf())
+            val req = ScanRequest(0, 10, partitionIds, ScanOrFilters(), listOf())
             assert.that({ sut.scan(req) }, throws<ReplyException>())
         }
 
@@ -191,7 +191,7 @@ object HyenaApiTest : Spek({
             val partitionIds = HashSet<UUID>()
             partitionIds.add(UUID.randomUUID())
 
-            val req = ScanRequest(0, 10, partitionIds, listOf(), listOf())
+            val req = ScanRequest(0, 10, partitionIds, ScanOrFilters(), listOf())
             val reply = sut.scan(req)
             assert.that(scanResult, sameInstance(reply))
         }

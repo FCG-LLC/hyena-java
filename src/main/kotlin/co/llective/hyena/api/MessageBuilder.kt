@@ -113,8 +113,11 @@ object MessageBuilder {
         writeLongList(dos, req.projection)
 
         dos.writeLong(req.filters.size.toLong())
-        for (filter in req.filters) {
-            dos.write(encodeScanFilter(filter))
+        for (andFilters in req.filters) {
+            dos.writeLong(andFilters.size.toLong())
+            for (filter in andFilters) {
+                dos.write(encodeScanFilter(filter))
+            }
         }
 
         baos.close()

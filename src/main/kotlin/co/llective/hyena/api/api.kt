@@ -165,7 +165,7 @@ enum class FilterType {
 data class ScanRequest(var minTs: Long = 0,
                        var maxTs: Long = 0,
                        var partitionIds: Set<UUID> = hashSetOf(),
-                       var filters: List<ScanFilter> = arrayListOf(),
+                       var filters: ScanOrFilters = ScanOrFilters(),
                        var projection: List<Long> = arrayListOf())
 
 data class ScanFilter(
@@ -182,6 +182,42 @@ data class ScanFilter(
         fun empty(type: FilterType, value: Any): ScanFilter {
             return ScanFilter(0, ScanComparison.Eq, type, value, Optional.empty())
         }
+    }
+}
+
+class ScanAndFilters : ArrayList<ScanFilter> {
+    constructor() : super()
+
+    constructor(scanFilter: ScanFilter) : this() {
+        add(scanFilter)
+    }
+
+    constructor(filters: List<ScanFilter>) : this() {
+        filters.forEach { add(it) }
+    }
+
+    override fun toString(): String {
+        val sb = StringBuilder("\tANDs:")
+        forEach { sb.append("\t\t$it") }
+        return sb.toString()
+    }
+}
+
+class ScanOrFilters : ArrayList<ScanAndFilters> {
+    constructor() : super()
+
+    constructor(scanAndFilters: ScanAndFilters) : this() {
+        add(scanAndFilters)
+    }
+
+    constructor(filters: List<ScanAndFilters>) : this() {
+        filters.forEach { add(it) }
+    }
+
+    override fun toString(): String {
+        val sb = StringBuilder("ORs:")
+        forEach { sb.append("$it") }
+        return sb.toString()
     }
 }
 
