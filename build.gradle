@@ -2,9 +2,10 @@ group 'co.llective.hyena'
 version '0.1-SNAPSHOT'
 
 buildscript {
-  ext.kotlin_version = '1.1.51'
+  ext.kotlin_version = '1.2.31'
 
   repositories {
+    maven { url "http://nexus.cs.int/repository/maven-central/" }
     mavenCentral()
   }
   dependencies {
@@ -29,13 +30,14 @@ junitPlatform {
 }
 
 repositories {
+  maven { url "http://nexus.cs.int/repository/maven-central/" }
   mavenCentral()
   maven { url "http://clojars.org/repo/" }
   maven { url "http://dl.bintray.com/jetbrains/spek" }
 }
 
 dependencies {
-  compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
+  compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
   compile group: 'org.python', name: 'jython-standalone', version: '2.5.2'
   compile group: 'com.google.guava', name: 'guava', version: '23.1-jre'
   compile group: 'io.airlift', name: 'log', version: '0.150'
@@ -48,7 +50,7 @@ dependencies {
   testCompile 'org.jetbrains.spek:spek-api:1.1.5'
   testCompile group: 'com.natpryce', name: 'hamkrest', version: '1.4.2.2'
   testCompile group: 'com.nhaarman', name: 'mockito-kotlin', version: '1.5.0'
-  testCompile group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: '1.1.51'
+  testCompile group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: '1.2.31'
   testRuntime 'org.jetbrains.spek:spek-junit-platform-engine:1.1.5'
   testRuntime 'org.junit.platform:junit-platform-runner:1.0.1'
 }
