@@ -93,7 +93,7 @@ fun genScan(options: GenOptions) {
             options.minTs,
             options.maxTs,
             options.partitions,
-            filters,
+            ScanOrFilters(ScanAndFilters(filters)),
             options.columnIds.toList()
     )
     val request = MessageBuilder.buildScanMessage(sr)
