@@ -58,6 +58,14 @@ fun main(args: Array<String>) {
     val bytes = File(args[0]).readBytes()
     val buffer = ByteBuffer.wrap(bytes)
     buffer.order(ByteOrder.LITTLE_ENDIAN)
-    val reply = MessageDecoder.decode(buffer)
-    printReply(reply)
+    val peerReply = MessageDecoder.decodePeerReply(buffer)
+    when (peerReply) {
+        is KeepAliveReply -> println("KeepAliveReply")
+        is ResponseReply -> {
+            val reply = MessageDecoder.decode(peerReply.bufferPayload)
+            printReply(reply)
+        }
+        is ResponseReplyError -> println(peerReply)
+    }
+
 }
