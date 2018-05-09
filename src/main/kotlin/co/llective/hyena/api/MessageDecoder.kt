@@ -1,17 +1,21 @@
 package co.llective.hyena.api
 
+import io.airlift.log.Logger
+import io.airlift.slice.Slice
+import io.airlift.slice.Slices
 import java.io.IOException
 import java.math.BigInteger
 import java.nio.ByteBuffer
 import java.util.*
 import kotlin.experimental.and
+import kotlin.system.measureTimeMillis
 
 object MessageDecoder {
 
-    fun decode(buf: ByteBuffer): Reply {
+    fun decode(buf: ByteBuffer, sliced: Boolean = true): Reply {
         try {
             val responseType = decodeMessageType(buf)
-            return decodeMessage(responseType, buf)
+            return decodeMessage(responseType, buf, sliced)
         } catch (exc: RuntimeException) {
             throw DeserializationException(exc)
         }
@@ -27,11 +31,14 @@ object MessageDecoder {
         }
     }
 
-    private fun decodeMessage(request: ApiRequest, buf: ByteBuffer): Reply {
+    private fun decodeMessage(request: ApiRequest, buf: ByteBuffer, sliced: Boolean): Reply {
+        if (!sliced && request == ApiRequest.Scan) {
+            return ScanReply(decodeEither(buf, this::decodeScanResult))
+        }
         return when (request) {
             ApiRequest.ListColumns -> decodeListColumn(buf)
             ApiRequest.Insert -> InsertReply(decodeEither(buf) { b -> b.int })
-            ApiRequest.Scan -> ScanReply(decodeEither(buf, this::decodeScanResult))
+            ApiRequest.Scan -> ScanReplySlice(decodeEither(buf, this::decodeScanResultSlice))
             ApiRequest.RefreshCatalog -> CatalogReply(decodeRefreshCatalog(buf))
             ApiRequest.AddColumn -> AddColumnReply(decodeEither(buf) { b -> b.int })
             ApiRequest.Flush -> TODO()
@@ -77,13 +84,93 @@ object MessageDecoder {
 
     @Throws(IOException::class)
     private fun decodeScanResult(buf: ByteBuffer): ScanResult {
-        val data = ArrayList<DataTriple>()
-        val listLength = buf.long
+        lateinit var result: ScanResult
+        val deserializationTime = measureTimeMillis {
+            val data = ArrayList<DataTriple>()
+            val listLength = buf.long
 
-        for (x in 0 until listLength) {
-            data.add(decodeDataTriple(buf))
+            for (x in 0 until listLength) {
+                data.add(decodeDataTriple(buf))
+            }
+            result = ScanResult(data)
         }
-        return ScanResult(data)
+        Logger.get("TraditionalDeserializator").error("traditional deserialization took $deserializationTime ms")
+        return result
+    }
+
+    @Throws(IOException::class)
+    private fun decodeScanResultSlice(buf: ByteBuffer): ScanResultSlice {
+        lateinit var result: ScanResultSlice
+        val deserializationTime = measureTimeMillis {
+            val columnNo = buf.long
+            val columnMap = HashMap<Long, SlicedColumn>()
+
+            // process every column
+            for (x in 0 until columnNo) {
+                val columnId = buf.long
+                val columnType = BlockType.values()[buf.int]
+                val dataPresent = buf.get()
+                var slicedColumn: SlicedColumn
+                slicedColumn = if (dataPresent == 0.toByte()) {
+                    if (columnType.isDense()) {
+                        DenseColumn(columnType, Slices.EMPTY_SLICE, 0)
+                    } else {
+                        SparseColumn(columnType, Slices.EMPTY_SLICE, Slices.EMPTY_SLICE, 0)
+                    }
+                } else {
+                    decodeBlockSlice(buf)
+                }
+                columnMap[columnId] = slicedColumn
+            }
+            result = ScanResultSlice(columnMap)
+        }
+        Logger.get("SliceDeserializator").error("slice-based deserialization took $deserializationTime ms")
+        return result
+    }
+
+    private fun decodeBlockSlice(buf: ByteBuffer): SlicedColumn {
+        val type = BlockType.values()[buf.int]
+        val recordsCount = buf.long.toInt()
+
+        lateinit var column: SlicedColumn
+        val slicingTime = measureTimeMillis {
+            column = if (type.isDense()) {
+                val slice = createDataSlice(type, recordsCount, buf)
+                DenseColumn(type, slice, recordsCount)
+            } else {
+                val slice = createDataSlice(type, recordsCount, buf)
+                lateinit var indexSlice: Slice
+                val indexSlicingTime = measureTimeMillis {
+                    indexSlice = createIndexSlice(recordsCount, buf)
+                }
+                Logger.get("Index slice decoder").warn("Index slicing time for $type type column was $indexSlicingTime ms")
+                SparseColumn(type, slice, indexSlice, recordsCount)
+            }
+        }
+        Logger.get("Column decoder").warn("Slicing time for $type type column was $slicingTime ms")
+        return column
+    }
+
+    private fun createDataSlice(type: BlockType, recordsCount: Int, buf: ByteBuffer): Slice {
+        val bytesToAllocate = recordsCount * type.size().bytes
+        val dstArray = ByteArray(bytesToAllocate)
+        // fill array
+        buf.get(dstArray)
+        // go into slice
+        return Slices.wrappedBuffer(dstArray, 0, dstArray.size)
+    }
+
+    private fun createIndexSlice(recordsCount: Int, buf: ByteBuffer): Slice {
+        val vectorLen = buf.long.toInt()
+        if (vectorLen != recordsCount) {
+            throw DeserializationException("Sparse data inconsistent, values len doesn't match offsets len")
+        }
+        val bytesToAllocate = recordsCount * 4 // 32bit - index size
+        val dstArray = ByteArray(bytesToAllocate)
+        // fill array
+        buf.get(dstArray)
+        // go into slice
+        return Slices.wrappedBuffer(dstArray, 0, dstArray.size)
     }
 
     private fun decodeDataTriple(buf: ByteBuffer): DataTriple {

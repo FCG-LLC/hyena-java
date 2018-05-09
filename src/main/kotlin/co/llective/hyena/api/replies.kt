@@ -1,6 +1,6 @@
 package co.llective.hyena.api
 
-import java.util.Optional
+import java.util.*
 
 sealed class Either<out L, out R>
 data class Left<out L>(val value: L) : Either<L, Nothing>()
@@ -33,5 +33,6 @@ data class ListColumnsReply(val columns: List<Column>) : Reply()
 data class AddColumnReply(val result: Either<Int, ApiError>) : Reply()
 data class InsertReply(val result: Either<Int, ApiError>) : Reply()
 data class ScanReply(val result: Either<ScanResult, ApiError>) : Reply()
+data class ScanReplySlice(val result: Either<ScanResultSlice, ApiError>) : Reply()
 data class CatalogReply(val result: Catalog) : Reply()
 data class SerializeError(val message: String) : Reply()

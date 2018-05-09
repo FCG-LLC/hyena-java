@@ -46,6 +46,7 @@ dependencies {
   compile group: 'cs', name: 'jnanomsg', version: '0.4.5'
   compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.6'
   compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
+  compile group: 'io.airlift', name: 'slice', version: '0.33'
 
   testCompile 'org.jetbrains.spek:spek-api:1.1.5'
   testCompile group: 'com.natpryce', name: 'hamkrest', version: '1.4.2.2'
