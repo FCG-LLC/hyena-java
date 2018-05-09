@@ -28,7 +28,7 @@ fun getOptions(): Options {
     val options = Options()
 
     options.addOption("h", "help", false, "Prints this help")
-    options.addRequiredOption("c", "command", true, "Valid command (catalog, columns, addcolumn, insert, scan)")
+    options.addRequiredOption("c", "command", true, "Valid command (catalog, columns, addcolumn, insert, scan, keepalive, abort, closeconnection)")
     options.addRequiredOption("o", "output", true, "Name of a file to put output to")
     options.addOption("n", "column-name", true, "Name of the column")
     options.addOption("t", "column-type", true, "Type of the column")
@@ -70,7 +70,26 @@ fun main(args: Array<String>) {
         "ADDCOLUMN" -> genAddColumns(options)
         "INSERT" -> genInsert(options)
         "SCAN" -> genScan(options)
+        "KEEPALIVE" -> genKeepalive(options)
+        "ABORT" -> genAbort(options)
+        "CLOSECONNECTION" -> genCloseConnection(options)
     }
+}
+
+
+fun genKeepalive(options: GenOptions) {
+    val request = MessageBuilder.wrapRequestIntoPeerRequest(PeerRequestType.KeepAlive, 0)
+    write(options, request)
+}
+
+fun genAbort(options: GenOptions) {
+    val request = MessageBuilder.wrapRequestIntoPeerRequest(PeerRequestType.Abort, 0)
+    write(options, request)
+}
+
+fun genCloseConnection(options: GenOptions) {
+    val request = MessageBuilder.wrapRequestIntoPeerRequest(PeerRequestType.CloseConnection, 0)
+    write(options, request)
 }
 
 fun genScan(options: GenOptions) {
@@ -96,7 +115,8 @@ fun genScan(options: GenOptions) {
             ScanOrFilters(ScanAndFilters(filters)),
             options.columnIds.toList()
     )
-    val request = MessageBuilder.buildScanMessage(sr)
+    val message = MessageBuilder.buildScanMessage(sr)
+    val request = MessageBuilder.wrapRequestIntoPeerRequest(PeerRequestType.Request, 0, message)
     write(options, request)
 }
 
@@ -124,7 +144,8 @@ fun genInsert(options: GenOptions) {
                 genBlock(options.rows, options.blockTypes[i]))
     }.toList()
 
-    val request = MessageBuilder.buildInsertMessage(options.sourceId, timestamps, data)
+    val message = MessageBuilder.buildInsertMessage(options.sourceId, timestamps, data)
+    val request = MessageBuilder.wrapRequestIntoPeerRequest(PeerRequestType.Request, 0, message)
     write(options, request)
 }
 
@@ -141,17 +162,20 @@ fun genAddColumns(options: GenOptions) {
         System.exit(1)
     }
     val column = Column(options.blockTypes[0], 0, options.columnNames[0])
-    val request = MessageBuilder.buildAddColumnMessage(column)
+    val message = MessageBuilder.buildAddColumnMessage(column)
+    val request = MessageBuilder.wrapRequestIntoPeerRequest(PeerRequestType.Request, 0, message)
     write(options, request)
 }
 
 fun genCatalog(options: GenOptions) {
-    val request = MessageBuilder.buildRefreshCatalogMessage()
+    val message = MessageBuilder.buildRefreshCatalogMessage()
+    val request = MessageBuilder.wrapRequestIntoPeerRequest(PeerRequestType.Request, 0, message)
     write(options, request)
 }
 
 fun genColumns(options: GenOptions) {
-    val request = MessageBuilder.buildListColumnsMessage()
+    val message = MessageBuilder.buildListColumnsMessage()
+    val request = MessageBuilder.wrapRequestIntoPeerRequest(PeerRequestType.Request, 0, message)
     write(options, request)
 }
 
