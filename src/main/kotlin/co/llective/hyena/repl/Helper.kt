@@ -84,13 +84,13 @@ object Helper {
     @JvmStatic
     fun convertValue(value: String, type: FilterType): Any =
             when (type) {
-                FilterType.I8 -> Integer.parseInt(value)
-                FilterType.I16 -> Integer.parseInt(value)
-                FilterType.I32 -> Integer.parseInt(value)
+                FilterType.I8 -> java.lang.Long.parseLong(value)
+                FilterType.I16 -> java.lang.Long.parseLong(value)
+                FilterType.I32 -> java.lang.Long.parseLong(value)
                 FilterType.I64 -> java.lang.Long.parseLong(value)
                 FilterType.I128 -> TODO()
-                FilterType.U8 -> Integer.parseInt(value)
-                FilterType.U16 -> Integer.parseInt(value)
+                FilterType.U8 -> java.lang.Long.parseLong(value)
+                FilterType.U16 -> java.lang.Long.parseLong(value)
                 FilterType.U32 -> java.lang.Long.parseLong(value)
                 FilterType.U64 -> java.lang.Long.parseLong(value)
                 FilterType.U128 -> TODO()
