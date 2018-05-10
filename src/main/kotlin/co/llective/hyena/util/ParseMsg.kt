@@ -23,12 +23,8 @@ fun <T> eitherToString(either: Either<T, ApiError>, success: (T) -> String): Str
         }
 
 fun printScanResult(result: ScanResult): String =
-        "data=[${result.data.map { triple ->
-            "{id=${triple.columnId}, type=${triple.columnType}, block=${if (triple.data.isPresent) {
-                "#" + triple.data.get().block.count()
-            } else {
-                "no-data"
-            }}}"
+        "data=[${result.columnMap.map { mapEntry ->
+            "{id=${mapEntry.key}, type=${mapEntry.value.type}, block=${mapEntry.value.elementsCount}}"
         }.reduce { x, y -> "$x, $y" }}]"
 
 fun printReply(reply: Reply) {

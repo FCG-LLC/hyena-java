@@ -16,8 +16,8 @@ import kotlin.concurrent.schedule
 open class HyenaApi internal constructor(private val connection: ConnectionManager) {
     constructor(address: String) : this(ConnectionManager(address))
 
-    private fun <T, C> makeApiCall(message: ByteArray, expected: Class<C>, sliced: Boolean = false, extract: (C) -> T): T {
-        val replyFuture = connection.sendRequest(message, sliced)
+    private fun <T, C> makeApiCall(message: ByteArray, expected: Class<C>, extract: (C) -> T): T {
+        val replyFuture = connection.sendRequest(message)
         val reply = replyFuture.get()
 
         @Suppress("UNCHECKED_CAST")
@@ -82,19 +82,6 @@ open class HyenaApi internal constructor(private val connection: ConnectionManag
     }
 
     @Throws(IOException::class, ReplyException::class)
-    fun scanToSlices(req: ScanRequest): ScanResultSlice {
-        val scanMessage = MessageBuilder.buildScanMessage(req)
-        return makeApiCall(scanMessage, ScanReplySlice::class.java, true) { reply ->
-            when (reply.result) {
-                is Left -> reply.result.value
-                is Right -> {
-                    throw ReplyException(reply.result.value)
-                }
-            }
-        }
-    }
-
-    @Throws(IOException::class, ReplyException::class)
     fun refreshCatalog(): Catalog {
         val message = MessageBuilder.buildRefreshCatalogMessage()
         return makeApiCall(message, CatalogReply::class.java) { reply -> reply.result }
@@ -124,7 +111,6 @@ open class ConnectionManager {
     private var connectionManager: PeerConnectionManager
     private var connection: PeerConnection
     private val requests: ConcurrentHashMap<Long, CompletableFuture<Any>> = ConcurrentHashMap()
-    private val slicedRequests: ConcurrentHashMap<Long, Boolean> = ConcurrentHashMap()
     internal val keepAliveResponse: AtomicBoolean = AtomicBoolean(true)
     private val receiveScheduler = Timer()
     private val keepAliveScheduler = Timer()
@@ -185,11 +171,10 @@ open class ConnectionManager {
 
     }
 
-    open fun sendRequest(message: ByteArray, sliced: Boolean = false): Future<*> {
+    open fun sendRequest(message: ByteArray): Future<*> {
         val messageId = UUID.randomUUID().leastSignificantBits
         val future = CompletableFuture<Any>()
         requests[messageId] = future
-        slicedRequests[messageId] = sliced
         connection.synchronizedReq(request = MessageBuilder.wrapRequestIntoPeerRequest(PeerRequestType.Request, messageId, message))
         return future
     }
@@ -202,11 +187,10 @@ open class ConnectionManager {
             is KeepAliveReply -> keepAliveResponse.set(true)
             is ResponseReply -> {
                 val future = requests.remove(reply.messageId)
-                val sliced = slicedRequests.remove(reply.messageId)
                 if (future == null) {
                     throw Exception("No message of id ${reply.messageId} found in registry")
                 } else {
-                    future.complete(MessageDecoder.decode(reply.bufferPayload, sliced!!))
+                    future.complete(MessageDecoder.decode(reply.bufferPayload))
                 }
             }
             is ResponseReplyError -> {

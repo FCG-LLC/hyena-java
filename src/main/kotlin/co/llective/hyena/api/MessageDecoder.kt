@@ -12,10 +12,10 @@ import kotlin.system.measureTimeMillis
 
 object MessageDecoder {
 
-    fun decode(buf: ByteBuffer, sliced: Boolean = true): Reply {
+    fun decode(buf: ByteBuffer): Reply {
         try {
             val responseType = decodeMessageType(buf)
-            return decodeMessage(responseType, buf, sliced)
+            return decodeMessage(responseType, buf)
         } catch (exc: RuntimeException) {
             throw DeserializationException(exc)
         }
@@ -27,18 +27,15 @@ object MessageDecoder {
         if (messageTypeId <= ApiRequest.values().size) {
             return ApiRequest.values()[messageTypeId]
         } else {
-            throw throw DeserializationException("Cannot deserialize response type of index " + messageTypeId)
+            throw throw DeserializationException("Cannot deserialize response type of index $messageTypeId")
         }
     }
 
-    private fun decodeMessage(request: ApiRequest, buf: ByteBuffer, sliced: Boolean): Reply {
-        if (!sliced && request == ApiRequest.Scan) {
-            return ScanReply(decodeEither(buf, this::decodeScanResult))
-        }
+    private fun decodeMessage(request: ApiRequest, buf: ByteBuffer): Reply {
         return when (request) {
             ApiRequest.ListColumns -> decodeListColumn(buf)
             ApiRequest.Insert -> InsertReply(decodeEither(buf) { b -> b.int })
-            ApiRequest.Scan -> ScanReplySlice(decodeEither(buf, this::decodeScanResultSlice))
+            ApiRequest.Scan -> ScanReply(decodeEither(buf, this::decodeScanResultSlice))
             ApiRequest.RefreshCatalog -> CatalogReply(decodeRefreshCatalog(buf))
             ApiRequest.AddColumn -> AddColumnReply(decodeEither(buf) { b -> b.int })
             ApiRequest.Flush -> TODO()
@@ -83,56 +80,35 @@ object MessageDecoder {
     data class ControlReply(val connectionId: Long, val socketAddress: String)
 
     @Throws(IOException::class)
-    private fun decodeScanResult(buf: ByteBuffer): ScanResult {
-        lateinit var result: ScanResult
-        val deserializationTime = measureTimeMillis {
-            val data = ArrayList<DataTriple>()
-            val listLength = buf.long
+    private fun decodeScanResultSlice(buf: ByteBuffer): ScanResult {
+        val columnNo = buf.long
+        val columnMap = HashMap<Long, ColumnValues>()
 
-            for (x in 0 until listLength) {
-                data.add(decodeDataTriple(buf))
-            }
-            result = ScanResult(data)
-        }
-        Logger.get("TraditionalDeserializator").error("traditional deserialization took $deserializationTime ms")
-        return result
-    }
-
-    @Throws(IOException::class)
-    private fun decodeScanResultSlice(buf: ByteBuffer): ScanResultSlice {
-        lateinit var result: ScanResultSlice
-        val deserializationTime = measureTimeMillis {
-            val columnNo = buf.long
-            val columnMap = HashMap<Long, SlicedColumn>()
-
-            // process every column
-            for (x in 0 until columnNo) {
-                val columnId = buf.long
-                val columnType = BlockType.values()[buf.int]
-                val dataPresent = buf.get()
-                var slicedColumn: SlicedColumn
-                slicedColumn = if (dataPresent == 0.toByte()) {
-                    if (columnType.isDense()) {
-                        DenseColumn(columnType, Slices.EMPTY_SLICE, 0)
-                    } else {
-                        SparseColumn(columnType, Slices.EMPTY_SLICE, Slices.EMPTY_SLICE, 0)
-                    }
+        // process every column
+        for (x in 0 until columnNo) {
+            val columnId = buf.long
+            val columnType = BlockType.values()[buf.int]
+            val dataPresent = buf.get()
+            var column: ColumnValues
+            column = if (dataPresent == 0.toByte()) {
+                if (columnType.isDense()) {
+                    DenseColumn(columnType, Slices.EMPTY_SLICE, 0)
                 } else {
-                    decodeBlockSlice(buf)
+                    SparseColumn(columnType, Slices.EMPTY_SLICE, Slices.EMPTY_SLICE, 0)
                 }
-                columnMap[columnId] = slicedColumn
+            } else {
+                decodeBlockSlice(buf)
             }
-            result = ScanResultSlice(columnMap)
+            columnMap[columnId] = column
         }
-        Logger.get("SliceDeserializator").error("slice-based deserialization took $deserializationTime ms")
-        return result
+        return ScanResult(columnMap)
     }
 
-    private fun decodeBlockSlice(buf: ByteBuffer): SlicedColumn {
+    private fun decodeBlockSlice(buf: ByteBuffer): ColumnValues {
         val type = BlockType.values()[buf.int]
         val recordsCount = buf.long.toInt()
 
-        lateinit var column: SlicedColumn
+        lateinit var column: ColumnValues
         val slicingTime = measureTimeMillis {
             column = if (type.isDense()) {
                 val slice = createDataSlice(type, recordsCount, buf)
@@ -171,18 +147,6 @@ object MessageDecoder {
         buf.get(dstArray)
         // go into slice
         return Slices.wrappedBuffer(dstArray, 0, dstArray.size)
-    }
-
-    private fun decodeDataTriple(buf: ByteBuffer): DataTriple {
-        val columnId = buf.long
-        val columnType = BlockType.values()[buf.int]
-        val dataPresent = buf.get()
-        return if (dataPresent == 0.toByte()) {
-            DataTriple(columnId, columnType, Optional.empty())
-        } else {
-            val data = decodeBlockHolder(buf)
-            DataTriple(columnId, columnType, Optional.of(data))
-        }
     }
 
     @Throws(IOException::class)

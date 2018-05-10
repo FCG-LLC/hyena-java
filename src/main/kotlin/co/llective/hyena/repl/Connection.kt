@@ -29,12 +29,11 @@ class Connection(address: String) {
 
     fun scan(request: ScanRequest) {
         val result = hyena.scan(request)
-        val maxrow = result.data
-                .filter({ d -> d.data.isPresent })
-                .map({ d -> d.data.get().block.count() })
+        val maxrow = result.columnMap
+                .map({ d -> d.value.elementsCount })
                 .max()
         println("Hyena returned $maxrow rows")
-        for (res in result.data) {
+        for (res in result.columnMap) {
             println("$res")
         }
     }

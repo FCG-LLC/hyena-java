@@ -179,7 +179,7 @@ object HyenaApiTest : Spek({
         }
 
         it("Correctly extracts the reply") {
-            val scanResult = ScanResult(emptyList())
+            val scanResult = ScanResult(mutableMapOf())
             val mockedFuture = mock<Future<Any>> {
                 on { get() } doReturn ScanReply(Left(scanResult))
             }

@@ -5,7 +5,7 @@ import io.airlift.slice.Slice
 /**
  * Contains data for given column.
  */
-abstract class SlicedColumn {
+abstract class ColumnValues {
     abstract val type: BlockType
     abstract val elementsCount: Int
     abstract val elementBytesSize: Int
@@ -52,7 +52,7 @@ abstract class SlicedColumn {
 /**
  * Dense column implementation.
  */
-class DenseColumn : SlicedColumn {
+class DenseColumn : ColumnValues {
     override val type: BlockType
     override val elementsCount: Int
     override val elementBytesSize: Int
@@ -88,7 +88,7 @@ class DenseColumn : SlicedColumn {
  * Sparse column iterator-like implementation.
  * Only further records can be fetched (n, n+x), one cannot ask for earlier ones unless [resetCursor] is called.
  */
-class SparseColumn : SlicedColumn {
+class SparseColumn : ColumnValues {
     override val type: BlockType
     override val elementsCount: Int
     override val elementBytesSize: Int

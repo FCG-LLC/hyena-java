@@ -221,20 +221,7 @@ class ScanOrFilters : ArrayList<ScanAndFilters> {
     }
 }
 
-data class DataTriple(val columnId: Long, val columnType: BlockType, val data: Optional<BlockHolder>) {
-    override fun toString(): String {
-        return "Column id $columnId $columnType, data: " +
-                if (data.isPresent) {
-                    data.get().printNumbers()
-                } else {
-                    "None"
-                }
-    }
-}
-
-data class ScanResult(val data: List<DataTriple>)
-
-data class ScanResultSlice(val columnMap: MutableMap<Long, MessageDecoder.SlicedColumn>)
+data class ScanResult(val columnMap: MutableMap<Long, ColumnValues>)
 
 open class Column(val dataType: BlockType, var id: Long = -1, val name: String) {
     override fun toString(): String = "$name/$id ${dataType.name}"
