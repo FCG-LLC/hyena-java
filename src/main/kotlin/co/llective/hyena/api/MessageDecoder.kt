@@ -1,6 +1,5 @@
 package co.llective.hyena.api
 
-import io.airlift.log.Logger
 import io.airlift.slice.Slice
 import io.airlift.slice.Slices
 import java.io.IOException
@@ -8,7 +7,6 @@ import java.math.BigInteger
 import java.nio.ByteBuffer
 import java.util.*
 import kotlin.experimental.and
-import kotlin.system.measureTimeMillis
 
 object MessageDecoder {
 
@@ -35,7 +33,7 @@ object MessageDecoder {
         return when (request) {
             ApiRequest.ListColumns -> decodeListColumn(buf)
             ApiRequest.Insert -> InsertReply(decodeEither(buf) { b -> b.int })
-            ApiRequest.Scan -> ScanReply(decodeEither(buf, this::decodeScanResultSlice))
+            ApiRequest.Scan -> ScanReply(decodeEither(buf, this::decodeScanResult))
             ApiRequest.RefreshCatalog -> CatalogReply(decodeRefreshCatalog(buf))
             ApiRequest.AddColumn -> AddColumnReply(decodeEither(buf) { b -> b.int })
             ApiRequest.Flush -> TODO()
@@ -80,7 +78,7 @@ object MessageDecoder {
     data class ControlReply(val connectionId: Long, val socketAddress: String)
 
     @Throws(IOException::class)
-    private fun decodeScanResultSlice(buf: ByteBuffer): ScanResult {
+    private fun decodeScanResult(buf: ByteBuffer): ScanResult {
         val columnNo = buf.long
         val columnMap = HashMap<Long, ColumnValues>()
 
@@ -97,33 +95,25 @@ object MessageDecoder {
                     SparseColumn(columnType, Slices.EMPTY_SLICE, Slices.EMPTY_SLICE, 0)
                 }
             } else {
-                decodeBlockSlice(buf)
+                decodeColumnValues(buf)
             }
             columnMap[columnId] = column
         }
         return ScanResult(columnMap)
     }
 
-    private fun decodeBlockSlice(buf: ByteBuffer): ColumnValues {
+    internal fun decodeColumnValues(buf: ByteBuffer): ColumnValues {
         val type = BlockType.values()[buf.int]
         val recordsCount = buf.long.toInt()
 
-        lateinit var column: ColumnValues
-        val slicingTime = measureTimeMillis {
-            column = if (type.isDense()) {
-                val slice = createDataSlice(type, recordsCount, buf)
-                DenseColumn(type, slice, recordsCount)
-            } else {
-                val slice = createDataSlice(type, recordsCount, buf)
-                lateinit var indexSlice: Slice
-                val indexSlicingTime = measureTimeMillis {
-                    indexSlice = createIndexSlice(recordsCount, buf)
-                }
-                Logger.get("Index slice decoder").warn("Index slicing time for $type type column was $indexSlicingTime ms")
-                SparseColumn(type, slice, indexSlice, recordsCount)
-            }
+        val column = if (type.isDense()) {
+            val slice = createDataSlice(type, recordsCount, buf)
+            DenseColumn(type, slice, recordsCount)
+        } else {
+            val slice = createDataSlice(type, recordsCount, buf)
+            val indexSlice = createIndexSlice(recordsCount, buf)
+            SparseColumn(type, slice, indexSlice, recordsCount)
         }
-        Logger.get("Column decoder").warn("Slicing time for $type type column was $slicingTime ms")
         return column
     }
 
@@ -230,97 +220,6 @@ object MessageDecoder {
         val bytes = ByteArray(len)
         buf.get(bytes, 0, len)
         return String(bytes, HyenaApi.UTF8_CHARSET)
-    }
-
-    @Throws(IOException::class)
-    internal fun decodeBlockHolder(buf: ByteBuffer): BlockHolder {
-        val type = BlockType.values()[buf.int]
-        val recordsCount = buf.long.toInt()
-
-        val block = when (type) {
-            BlockType.I8Dense -> fillDenseBlock(DenseBlock<Byte>(type, recordsCount), recordsCount, buf)
-            BlockType.I16Dense -> fillDenseBlock(DenseBlock<Short>(type, recordsCount), recordsCount, buf)
-            BlockType.I32Dense -> fillDenseBlock(DenseBlock<Int>(type, recordsCount), recordsCount, buf)
-            BlockType.I64Dense -> fillDenseBlock(DenseBlock<Long>(type, recordsCount), recordsCount, buf)
-            BlockType.U8Dense -> fillDenseBlock(DenseBlock<Short>(type, recordsCount), recordsCount, buf)
-            BlockType.U16Dense -> fillDenseBlock(DenseBlock<Int>(type, recordsCount), recordsCount, buf)
-            BlockType.U32Dense -> fillDenseBlock(DenseBlock<Long>(type, recordsCount), recordsCount, buf)
-            BlockType.U64Dense -> fillDenseBlock(DenseBlock<BigInteger>(type, recordsCount), recordsCount, buf)
-            BlockType.I8Sparse -> fillSparseBlock(SparseBlock<Byte>(type, recordsCount), recordsCount, buf)
-            BlockType.I16Sparse -> fillSparseBlock(SparseBlock<Short>(type, recordsCount), recordsCount, buf)
-            BlockType.I32Sparse -> fillSparseBlock(SparseBlock<Int>(type, recordsCount), recordsCount, buf)
-            BlockType.I64Sparse -> fillSparseBlock(SparseBlock<Long>(type, recordsCount), recordsCount, buf)
-            BlockType.U8Sparse -> fillSparseBlock(SparseBlock<Short>(type, recordsCount), recordsCount, buf)
-            BlockType.U16Sparse -> fillSparseBlock(SparseBlock<Int>(type, recordsCount), recordsCount, buf)
-            BlockType.U32Sparse -> fillSparseBlock(SparseBlock<Long>(type, recordsCount), recordsCount, buf)
-            BlockType.U64Sparse -> fillSparseBlock(SparseBlock<BigInteger>(type, recordsCount), recordsCount, buf)
-            BlockType.String -> TODO("Strings are not supported yet")
-            else -> {
-                // 128 bit
-                TODO("implement")
-            }
-        }
-
-        return BlockHolder(type, block)
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    private fun <T : Number> fillDenseBlock(denseBlock: DenseBlock<T>, vectorLen: Int, buf: ByteBuffer): DenseBlock<T> {
-        for (i in 0 until vectorLen) {
-            when (denseBlock.type) {
-                BlockType.I8Dense -> (denseBlock as DenseBlock<Byte>).add(buf.get())
-                BlockType.I16Dense -> (denseBlock as DenseBlock<Short>).add(buf.short)
-                BlockType.I32Dense -> (denseBlock as DenseBlock<Int>).add(buf.int)
-                BlockType.I64Dense -> (denseBlock as DenseBlock<Long>).add(buf.long)
-                BlockType.U8Dense -> (denseBlock as DenseBlock<Short>).add(buf.get().toUnsignedShort())
-                BlockType.U16Dense -> (denseBlock as DenseBlock<Int>).add(java.lang.Short.toUnsignedInt(buf.short))
-                BlockType.U32Dense -> (denseBlock as DenseBlock<Long>).add(java.lang.Integer.toUnsignedLong(buf.int))
-                BlockType.U64Dense -> (denseBlock as DenseBlock<BigInteger>).add(decodeBigInt(buf.long))
-                BlockType.I128Dense -> TODO()
-                BlockType.U128Dense -> TODO()
-                else -> throw DeserializationException("Sparse/String block cannot be serialized as dense one")
-            }
-        }
-
-        return denseBlock
-    }
-
-    private fun <T : Number> fillSparseBlock(sparseBlock: SparseBlock<T>, vectorsLen: Int, buf: ByteBuffer): SparseBlock<T> {
-        val type = sparseBlock.type
-
-        // deserialize values vector (size is already taken from buffer)
-        val valueList: MutableList<T> = ArrayList(vectorsLen)
-        for (i in 0 until vectorsLen) {
-            when (type) {
-                BlockType.I8Sparse -> valueList.add(buf.get() as T)
-                BlockType.I16Sparse -> valueList.add(buf.short as T)
-                BlockType.I32Sparse -> valueList.add(buf.int as T)
-                BlockType.I64Sparse -> valueList.add(buf.long as T)
-                BlockType.U8Sparse -> valueList.add(buf.get().toUnsignedShort() as T)
-                BlockType.U16Sparse -> valueList.add(java.lang.Short.toUnsignedInt(buf.short) as T)
-                BlockType.U32Sparse -> valueList.add(java.lang.Integer.toUnsignedLong(buf.int) as T)
-                BlockType.U64Sparse -> valueList.add(decodeBigInt(buf.long) as T)
-                BlockType.I128Sparse -> TODO()
-                BlockType.U128Sparse -> TODO()
-                else -> throw DeserializationException("Dense/String block cannot be serialized as sparse one")
-            }
-        }
-
-        // deserialize offsets vector
-        if (buf.long.toInt() != vectorsLen) {
-            throw DeserializationException("Sparse data inconsistent, values len doesn't match offsets len")
-        }
-        val offsetList: MutableList<Int> = ArrayList(vectorsLen)
-        for (i in 0 until vectorsLen) {
-            offsetList.add(buf.int)
-        }
-
-        // add vectors to sparse block
-        for (i in 0 until vectorsLen) {
-            sparseBlock.add(offsetList[i], valueList[i])
-        }
-
-        return sparseBlock
     }
 
     /**
