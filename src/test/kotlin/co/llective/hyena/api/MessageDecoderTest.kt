@@ -122,7 +122,10 @@ object MessageDecoderTest : Spek({
             val result = MessageDecoder.decodeColumnValues(byteBuffer)
             assert.that(result.type, equalTo(BlockType.U8Sparse))
             assert.that(result.elementsCount, equalTo(1))
-            assert.that(result.getLong(0), equalTo(value.toLong()))
+            assert.that(result.getLong(index), equalTo(value.toLong()))
+
+            assert.that(result.isNull(0), equalTo(true))
+            assert.that(result.isNull(index), equalTo(false))
         }
     }
 
