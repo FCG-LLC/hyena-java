@@ -39,12 +39,18 @@ abstract class ColumnValues {
 
     protected fun getLongFromDataSlice(elementIndex: Int): Long {
         val bytesOffset = elementIndex * elementBytesSize
-        return when (type.size()) {
-            Size.Bit8 -> dataSlice.getByte(bytesOffset).toLong()
-            Size.Bit16 -> dataSlice.getShort(bytesOffset).toLong()
-            Size.Bit32 -> dataSlice.getInt(bytesOffset).toLong()
-            Size.Bit64 -> dataSlice.getLong(bytesOffset)
-            else -> throw java.lang.IllegalArgumentException("Not supported type size: ${type.size()}")
+
+        return when (type) {
+            BlockType.I8Dense, BlockType.I8Sparse -> dataSlice.getByte(bytesOffset).toLong()
+            BlockType.I16Dense, BlockType.I16Sparse -> dataSlice.getShort(bytesOffset).toLong()
+            BlockType.I32Dense, BlockType.I32Sparse -> dataSlice.getInt(bytesOffset).toLong()
+            BlockType.I64Dense, BlockType.I64Sparse -> dataSlice.getLong(bytesOffset)
+            BlockType.U8Sparse, BlockType.U8Dense -> dataSlice.getUnsignedByte(bytesOffset).toLong()
+            BlockType.U16Sparse, BlockType.U16Dense -> dataSlice.getUnsignedShort(bytesOffset).toLong()
+            BlockType.U32Sparse, BlockType.U32Dense -> dataSlice.getUnsignedInt(bytesOffset)
+            BlockType.U64Sparse, BlockType.U64Dense -> dataSlice.getLong(bytesOffset)
+            BlockType.U128Sparse, BlockType.I128Sparse, BlockType.U128Dense, BlockType.I128Dense -> TODO("128bits support")
+            BlockType.String -> TODO("Strings support")
         }
     }
 }
