@@ -9,6 +9,7 @@ import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
 import java.math.BigInteger
 import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 object MessageDecoderTest : Spek({
     describe("Decode Message Type") {
@@ -62,52 +63,52 @@ object MessageDecoderTest : Spek({
         }
     }
 
-    describe("Decode BlockHolder") {
-        it("Correctly deserializes empty DenseBlock") {
+    describe("Decode ColumnValues") {
+        it("Correctly deserializes empty ColumnValues") {
             val byteBuffer = ByteBuffer.allocate(12)
+            byteBuffer.order(ByteOrder.LITTLE_ENDIAN)
             byteBuffer.putInt(BlockType.U32Dense.ordinal)
             byteBuffer.putLong(0)
             byteBuffer.position(0)
 
-            val result = MessageDecoder.decodeBlockHolder(byteBuffer)
+            val result = MessageDecoder.decodeColumnValues(byteBuffer)
             assert.that(result.type, equalTo(BlockType.U32Dense))
-            assert.that(result.block.type, equalTo(BlockType.U32Dense))
-            assert.that(result.block.count(), equalTo(0))
+            assert.that(result.elementsCount, equalTo(0))
         }
 
-        it("Correctly deserializes non-empty DenseBlock") {
+        it("Correctly deserializes non-empty dense ColumnValues") {
             val value = Long.MAX_VALUE / 4
             val byteBuffer = ByteBuffer.allocate(20)
+            byteBuffer.order(ByteOrder.LITTLE_ENDIAN)
             byteBuffer.putInt(BlockType.I64Dense.ordinal)
             byteBuffer.putLong(1)
             byteBuffer.putLong(value)
             byteBuffer.position(0)
 
-            val result = MessageDecoder.decodeBlockHolder(byteBuffer)
+            val result = MessageDecoder.decodeColumnValues(byteBuffer)
             assert.that(result.type, equalTo(BlockType.I64Dense))
-            assert.that(result.block.type, equalTo(BlockType.I64Dense))
-            assert.that(result.block.count(), equalTo(1))
-            assert.that((result.block as DenseBlock<Long>).data.size, equalTo(1))
-            assert.that((result.block as DenseBlock<Long>).data[0], equalTo(value))
+            assert.that(result.elementsCount, equalTo(1))
+            assert.that(result.getLong(0), equalTo(value))
         }
 
-        it("Correctly deserializes empty SparseBlock") {
+        it("Correctly deserializes empty sparse ColumnValues") {
             val byteBuffer = ByteBuffer.allocate(20)
+            byteBuffer.order(ByteOrder.LITTLE_ENDIAN)
             byteBuffer.putInt(BlockType.U32Sparse.ordinal)
             byteBuffer.putLong(0)
             byteBuffer.putLong(0)
             byteBuffer.position(0)
 
-            val result = MessageDecoder.decodeBlockHolder(byteBuffer)
+            val result = MessageDecoder.decodeColumnValues(byteBuffer)
             assert.that(result.type, equalTo(BlockType.U32Sparse))
-            assert.that(result.block.type, equalTo(BlockType.U32Sparse))
-            assert.that(result.block.count(), equalTo(0))
+            assert.that(result.elementsCount, equalTo(0))
         }
 
-        it("Correctly deserializes non-empty SparseBlock") {
+        it("Correctly deserializes non-empty sparse ColumnValues") {
             val index = 15
             val value = 2
             val byteBuffer = ByteBuffer.allocate(26)
+            byteBuffer.order(ByteOrder.LITTLE_ENDIAN)
             byteBuffer.putInt(BlockType.U8Sparse.ordinal)
             // values
             byteBuffer.putLong(1)
@@ -118,14 +119,13 @@ object MessageDecoderTest : Spek({
 
             byteBuffer.position(0)
 
-            val result = MessageDecoder.decodeBlockHolder(byteBuffer)
+            val result = MessageDecoder.decodeColumnValues(byteBuffer)
             assert.that(result.type, equalTo(BlockType.U8Sparse))
-            assert.that(result.block.type, equalTo(BlockType.U8Sparse))
-            assert.that(result.block.count(), equalTo(1))
-            assert.that((result.block as SparseBlock<Short>).offsetData.size, equalTo(1))
-            assert.that((result.block as SparseBlock<Short>).offsetData[0], equalTo(index))
-            assert.that((result.block as SparseBlock<Short>).valueData.size, equalTo(1))
-            assert.that((result.block as SparseBlock<Short>).valueData[0], equalTo(value.toShort()))
+            assert.that(result.elementsCount, equalTo(1))
+            assert.that(result.getLong(index), equalTo(value.toLong()))
+
+            assert.that(result.isNull(0), equalTo(true))
+            assert.that(result.isNull(index), equalTo(false))
         }
     }
 

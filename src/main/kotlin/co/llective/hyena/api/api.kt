@@ -41,13 +41,13 @@ enum class ScanComparison {
     NotEq
 }
 
-enum class Size {
-    Bit8,
-    Bit16,
-    Bit32,
-    Bit64,
-    Bit128,
-    Varying
+enum class Size(val bytes: Int) {
+    Bit8(1),
+    Bit16(2),
+    Bit32(4),
+    Bit64(8),
+    Bit128(16),
+    Varying(-1)
 }
 
 enum class BlockType {
@@ -221,18 +221,7 @@ class ScanOrFilters : ArrayList<ScanAndFilters> {
     }
 }
 
-data class DataTriple(val columnId: Long, val columnType: BlockType, val data: Optional<BlockHolder>) {
-    override fun toString(): String {
-        return "Column id $columnId $columnType, data: " +
-                if (data.isPresent) {
-                    data.get().printNumbers()
-                } else {
-                    "None"
-                }
-    }
-}
-
-data class ScanResult(val data: List<DataTriple>)
+data class ScanResult(val columnMap: MutableMap<Long, ColumnValues>)
 
 open class Column(val dataType: BlockType, var id: Long = -1, val name: String) {
     override fun toString(): String = "$name/$id ${dataType.name}"

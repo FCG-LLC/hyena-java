@@ -1,6 +1,6 @@
 package co.llective.hyena.api
 
-import java.util.Optional
+import java.util.*
 
 sealed class Either<out L, out R>
 data class Left<out L>(val value: L) : Either<L, Nothing>()
