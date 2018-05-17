@@ -1,7 +1,5 @@
 package co.llective.hyena.api
 
-import java.util.*
-
 data class ScanFilterBuilder @JvmOverloads constructor(
         private val catalog: Catalog,
         private val filter: ScanFilter = ScanFilter.empty(FilterType.I64, 0),
@@ -14,8 +12,6 @@ data class ScanFilterBuilder @JvmOverloads constructor(
     fun withOp(op: ScanComparison): ScanFilterBuilder = this.copy(opSet = true, filter = filter.copy(op = op))
 
     fun withValue(value: Any): ScanFilterBuilder = this.copy(filterValSet = true, filter = filter.copy(value = value))
-
-    fun withStringValue(value: String): ScanFilterBuilder = this.copy(filterValSet = true, filter = filter.copy(strValue = Optional.of(value)))
 
     fun build(): ScanFilter {
         if (!filterValSet) {

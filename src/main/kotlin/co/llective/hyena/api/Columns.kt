@@ -101,6 +101,9 @@ abstract class StringColumnValues: ColumnValues() {
     }
 }
 
+/**
+ * Dense string column implementations.
+ */
 class DenseStringColumn: StringColumnValues {
     override val type: BlockType = BlockType.StringDense
     override val elementsCount: Int

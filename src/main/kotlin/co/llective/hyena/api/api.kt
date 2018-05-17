@@ -177,15 +177,14 @@ data class ScanFilter(
         val column: Long,
         val op: ScanComparison = ScanComparison.Eq,
         val type: FilterType,
-        val value: Any,
-        val strValue: Optional<String>
+        val value: Any
 ) {
-    override fun toString(): String = "$column ${op.name} $value/$strValue"
+    override fun toString(): String = "$column ${op.name} $value"
 
     companion object {
         @JvmStatic
         fun empty(type: FilterType, value: Any): ScanFilter {
-            return ScanFilter(0, ScanComparison.Eq, type, value, Optional.empty())
+            return ScanFilter(0, ScanComparison.Eq, type, value)
         }
     }
 }
