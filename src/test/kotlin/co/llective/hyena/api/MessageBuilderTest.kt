@@ -44,23 +44,23 @@ object MessageBuilderTest : Spek({
             val actualBytes = MessageBuilder.buildScanMessage(request)
 
             val expectedBytes = byteArrayOf(
-                    ApiRequest.Scan.ordinal.toByte(), 0, 0, 0, // 32 bits
-                    minTs.toByte(), 0, 0, 0, 0, 0, 0, 0, // 64 bits min-ts
-                    maxTs.toByte(), 0, 0, 0, 0, 0, 0, 0, // 64 bits max-ts
-                    2, 0, 0, 0, 0, 0, 0, 0, // 64 bits partition ids size
-                    partitionId1.leastSignificantBits.toByte(), 0, 0, 0, 0, 0, 0, 0, // 64 bits uuid
-                    partitionId1.mostSignificantBits.toByte(), 0, 0, 0, 0, 0, 0, 0, // 64 bits uuid
-                    partitionId2.leastSignificantBits.toByte(), 0, 0, 0, 0, 0, 0, 0, // 64 bits uuid
-                    partitionId2.mostSignificantBits.toByte(), 0, 0, 0, 0, 0, 0, 0, // 64 bits uuid
-                    2, 0, 0, 0, 0, 0, 0, 0, // 64 bits projection list size
-                    1, 0, 0, 0, 0, 0, 0, 0, // 64 bits col1 id
-                    2, 0, 0, 0, 0, 0, 0, 0, // 64 bits col2 id
-                    1, 0, 0, 0, 0, 0, 0, 0, // 64 bits or filters list size
-                    1, 0, 0, 0, 0, 0, 0, 0, // 64 bits and filters list size
-                    1, 0, 0, 0, 0, 0, 0, 0, // 64 bits scan filter column id
-                    numericScanFilter.op.ordinal.toByte(), 0, 0, 0, // 32 bits scan filter operator id
-                    numericScanFilter.type.ordinal.toByte(), 0, 0, 0, // 32 bits scan filter type
-                    (numericScanFilter.value as Long).toByte(), 0, 0, 0 // 32 bits (u32) scan filter value
+                    ApiRequest.Scan.ordinal.toByte(), 0, 0, 0,  // 32 bits
+                    minTs.toByte(), 0, 0, 0, 0, 0, 0, 0,        // 64 bits min-ts
+                    maxTs.toByte(), 0, 0, 0, 0, 0, 0, 0,        // 64 bits max-ts
+                    2, 0, 0, 0, 0, 0, 0, 0,                     // 64 bits partition ids size
+                    partitionId1.leastSignificantBits.toByte(), 0, 0, 0, 0, 0, 0, 0,    // 64 bits uuid
+                    partitionId1.mostSignificantBits.toByte(), 0, 0, 0, 0, 0, 0, 0,     // 64 bits uuid
+                    partitionId2.leastSignificantBits.toByte(), 0, 0, 0, 0, 0, 0, 0,    // 64 bits uuid
+                    partitionId2.mostSignificantBits.toByte(), 0, 0, 0, 0, 0, 0, 0,     // 64 bits uuid
+                    2, 0, 0, 0, 0, 0, 0, 0,     // 64 bits projection list size
+                    1, 0, 0, 0, 0, 0, 0, 0,     // 64 bits col1 id
+                    2, 0, 0, 0, 0, 0, 0, 0,     // 64 bits col2 id
+                    1, 0, 0, 0, 0, 0, 0, 0,     // 64 bits or filters list size
+                    1, 0, 0, 0, 0, 0, 0, 0,     // 64 bits and filters list size
+                    1, 0, 0, 0, 0, 0, 0, 0,     // 64 bits scan filter column id
+                    numericScanFilter.op.ordinal.toByte(), 0, 0, 0,         // 32 bits scan filter operator id
+                    numericScanFilter.type.ordinal.toByte(), 0, 0, 0,       // 32 bits scan filter type
+                    (numericScanFilter.value as Long).toByte(), 0, 0, 0     // 32 bits (u32) scan filter value
             )
 
             assert.that(
@@ -77,20 +77,20 @@ object MessageBuilderTest : Spek({
             val stringValue = stringScanFilter.value as String
 
             val expectedBytes = byteArrayOf(
-                    ApiRequest.Scan.ordinal.toByte(), 0, 0, 0, // 32 bits
-                    minTs.toByte(), 0, 0, 0, 0, 0, 0, 0, // 64 bits min-ts
-                    maxTs.toByte(), 0, 0, 0, 0, 0, 0, 0, // 64 bits max-ts
-                    2, 0, 0, 0, 0, 0, 0, 0, // 64 bits partition ids size
-                    partitionId1.leastSignificantBits.toByte(), 0, 0, 0, 0, 0, 0, 0, // 64 bits uuid
-                    partitionId1.mostSignificantBits.toByte(), 0, 0, 0, 0, 0, 0, 0, // 64 bits uuid
-                    partitionId2.leastSignificantBits.toByte(), 0, 0, 0, 0, 0, 0, 0, // 64 bits uuid
-                    partitionId2.mostSignificantBits.toByte(), 0, 0, 0, 0, 0, 0, 0, // 64 bits uuid
-                    2, 0, 0, 0, 0, 0, 0, 0, // 64 bits projection list size
-                    1, 0, 0, 0, 0, 0, 0, 0, // 64 bits col1 id
-                    2, 0, 0, 0, 0, 0, 0, 0, // 64 bits col2 id
-                    1, 0, 0, 0, 0, 0, 0, 0, // 64 bits or filters list size
-                    1, 0, 0, 0, 0, 0, 0, 0, // 64 bits and filters list size
-                    1, 0, 0, 0, 0, 0, 0, 0, // 64 bits scan filter column id
+                    ApiRequest.Scan.ordinal.toByte(), 0, 0, 0,  // 32 bits
+                    minTs.toByte(), 0, 0, 0, 0, 0, 0, 0,        // 64 bits min-ts
+                    maxTs.toByte(), 0, 0, 0, 0, 0, 0, 0,        // 64 bits max-ts
+                    2, 0, 0, 0, 0, 0, 0, 0,                     // 64 bits partition ids size
+                    partitionId1.leastSignificantBits.toByte(), 0, 0, 0, 0, 0, 0, 0,    // 64 bits uuid
+                    partitionId1.mostSignificantBits.toByte(), 0, 0, 0, 0, 0, 0, 0,     // 64 bits uuid
+                    partitionId2.leastSignificantBits.toByte(), 0, 0, 0, 0, 0, 0, 0,    // 64 bits uuid
+                    partitionId2.mostSignificantBits.toByte(), 0, 0, 0, 0, 0, 0, 0,     // 64 bits uuid
+                    2, 0, 0, 0, 0, 0, 0, 0,     // 64 bits projection list size
+                    1, 0, 0, 0, 0, 0, 0, 0,     // 64 bits col1 id
+                    2, 0, 0, 0, 0, 0, 0, 0,     // 64 bits col2 id
+                    1, 0, 0, 0, 0, 0, 0, 0,     // 64 bits or filters list size
+                    1, 0, 0, 0, 0, 0, 0, 0,     // 64 bits and filters list size
+                    1, 0, 0, 0, 0, 0, 0, 0,     // 64 bits scan filter column id
                     stringScanFilter.op.ordinal.toByte(), 0, 0, 0,      // 32 bits scan filter operator id
                     FilterType.String.ordinal.toByte(), 0, 0, 0,        // 32 bits scan filter type
                     stringValue.length.toByte(), 0, 0, 0, 0, 0, 0, 0,   // 64 bits string value length

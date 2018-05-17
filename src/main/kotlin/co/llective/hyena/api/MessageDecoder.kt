@@ -125,13 +125,15 @@ object MessageDecoder {
         val metadataLen = buf.long.toInt()
         val bytesToAllocate = metadataLen * 2 * 8 // pairs of 64bit
         val dstArray = ByteArray(bytesToAllocate)
+        buf.get(dstArray)
         return Slices.wrappedBuffer(dstArray, 0, dstArray.size)
     }
 
     private fun createStringBlobSlice(buf: ByteBuffer): Slice {
         val blobLen = buf.long.toInt()
-        val bytesToAllocate = blobLen * 8 // utf-8 chars
+        val bytesToAllocate = blobLen // utf-8 chars
         val dstArray = ByteArray(bytesToAllocate)
+        buf.get(dstArray)
         return Slices.wrappedBuffer(dstArray, 0, dstArray.size)
     }
 

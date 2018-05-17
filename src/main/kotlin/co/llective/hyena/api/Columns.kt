@@ -43,7 +43,7 @@ abstract class ColumnValues {
     abstract fun resetCursor()
 }
 
-class EmptyColumn: ColumnValues {
+class EmptyColumn : ColumnValues {
     override val type: BlockType
     override val elementsCount: Int
 
@@ -73,7 +73,7 @@ class EmptyColumn: ColumnValues {
     }
 }
 
-abstract class NumberColumnValues: ColumnValues() {
+abstract class NumberColumnValues : ColumnValues() {
     protected abstract val dataSlice: Slice
     protected abstract val elementBytesSize: Int
 
@@ -95,7 +95,7 @@ abstract class NumberColumnValues: ColumnValues() {
     }
 }
 
-abstract class StringColumnValues: ColumnValues() {
+abstract class StringColumnValues : ColumnValues() {
     override fun getLong(rowId: Int): Long {
         throw IllegalStateException("String column cannot return long value")
     }
@@ -104,7 +104,7 @@ abstract class StringColumnValues: ColumnValues() {
 /**
  * Dense string column implementations.
  */
-class DenseStringColumn: StringColumnValues {
+class DenseStringColumn : StringColumnValues {
     override val type: BlockType = BlockType.StringDense
     override val elementsCount: Int
     private val metaSlice: Slice

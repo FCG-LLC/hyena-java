@@ -4,6 +4,7 @@ import co.llective.hyena.api.MessageDecoder.toUnsignedShort
 import com.natpryce.hamkrest.assertion.assert
 import com.natpryce.hamkrest.equalTo
 import com.natpryce.hamkrest.throws
+import io.airlift.slice.Slices
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
@@ -126,6 +127,33 @@ object MessageDecoderTest : Spek({
 
             assert.that(result.isNull(0), equalTo(true))
             assert.that(result.isNull(index), equalTo(false))
+        }
+
+        it("Correctly deserializes non-empty DenseStringColumn") {
+            val value1 = "one"
+            val value2 = "five"
+            val byteBuffer = ByteBuffer.allocate(69)
+            byteBuffer.order(ByteOrder.LITTLE_ENDIAN)
+            byteBuffer.putInt(BlockType.StringDense.ordinal)
+            byteBuffer.putLong(2)   // records count
+            //metadata
+            byteBuffer.putLong(2) // metadata len
+            byteBuffer.putLong(0) // first string start index
+            byteBuffer.putLong(3) // first string len
+            byteBuffer.putLong(3) // second string start index
+            byteBuffer.putLong(4) // second string len
+            //string blob
+            byteBuffer.putLong(7) // blob len
+            byteBuffer.put(value1.toByteArray(HyenaApi.UTF8_CHARSET))
+            byteBuffer.put(value2.toByteArray(HyenaApi.UTF8_CHARSET))
+
+            byteBuffer.position(0)
+
+            val result = MessageDecoder.decodeColumnValues(byteBuffer)
+            assert.that(result.type, equalTo(BlockType.StringDense))
+            assert.that(result.elementsCount, equalTo(2))
+            assert.that(result.getSlice(0), equalTo(Slices.utf8Slice(value1)))
+            assert.that(result.getSlice(1), equalTo(Slices.utf8Slice(value2)))
         }
     }
 
