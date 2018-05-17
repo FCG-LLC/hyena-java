@@ -116,7 +116,7 @@ object Helper {
             BlockType.U16Sparse -> SparseBlock<Int>(type, n)
             BlockType.U32Sparse -> SparseBlock<Long>(type, n)
             BlockType.U64Sparse -> SparseBlock<BigInteger>(type, n)
-            BlockType.String -> StringBlock(n)
+            BlockType.StringDense -> StringBlock(n)
             else -> {
                 // 128bit
                 TODO("implement")

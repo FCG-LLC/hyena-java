@@ -8,8 +8,6 @@ import io.airlift.slice.Slice
 abstract class ColumnValues {
     abstract val type: BlockType
     abstract val elementsCount: Int
-    abstract val elementBytesSize: Int
-    protected abstract val dataSlice: Slice
 
     /**
      * Gets long value for given row id.
@@ -26,6 +24,13 @@ abstract class ColumnValues {
     abstract fun getBytes(rowId: Int): ByteArray
 
     /**
+     * Gets sliced value for given row id.
+     * If doesn't exist there can be wrong output.
+     * Use [isNull] before to make sure.
+     */
+    abstract fun getSlice(rowId: Int): Slice
+
+    /**
      * Returns info if value of given row id exist.
      */
     abstract fun isNull(rowId: Int): Boolean
@@ -36,6 +41,41 @@ abstract class ColumnValues {
      * Note: Only valid for sparse implementation, in case of dense columns it is not needed to call.
      */
     abstract fun resetCursor()
+}
+
+class EmptyColumn: ColumnValues {
+    override val type: BlockType
+    override val elementsCount: Int
+
+    constructor(type: BlockType) {
+        this.type = type
+        this.elementsCount = 0
+    }
+
+    override fun getLong(rowId: Int): Long {
+        throw IllegalStateException("Empty column doesn't have values")
+    }
+
+    override fun getBytes(rowId: Int): ByteArray {
+        throw IllegalStateException("Empty column doesn't have values")
+    }
+
+    override fun getSlice(rowId: Int): Slice {
+        throw IllegalStateException("Empty column doesn't have values")
+    }
+
+    override fun isNull(rowId: Int): Boolean {
+        return true
+    }
+
+    override fun resetCursor() {
+        // NOP
+    }
+}
+
+abstract class NumberColumnValues: ColumnValues() {
+    protected abstract val dataSlice: Slice
+    protected abstract val elementBytesSize: Int
 
     protected fun getLongFromDataSlice(elementIndex: Int): Long {
         val bytesOffset = elementIndex * elementBytesSize
@@ -50,15 +90,60 @@ abstract class ColumnValues {
             BlockType.U32Sparse, BlockType.U32Dense -> dataSlice.getUnsignedInt(bytesOffset)
             BlockType.U64Sparse, BlockType.U64Dense -> dataSlice.getLong(bytesOffset)
             BlockType.U128Sparse, BlockType.I128Sparse, BlockType.U128Dense, BlockType.I128Dense -> TODO("128bits support")
-            BlockType.String -> TODO("Strings support")
+            BlockType.StringDense -> TODO("Strings support")
         }
     }
 }
 
+abstract class StringColumnValues: ColumnValues() {
+    override fun getLong(rowId: Int): Long {
+        throw IllegalStateException("String column cannot return long value")
+    }
+}
+
+class DenseStringColumn: StringColumnValues {
+    override val type: BlockType = BlockType.StringDense
+    override val elementsCount: Int
+    private val metaSlice: Slice
+    private val blobSlice: Slice
+
+    constructor(size: Int, metaSlice: Slice, blobSlice: Slice) {
+        this.elementsCount = size
+        this.metaSlice = metaSlice
+        this.blobSlice = blobSlice
+    }
+
+    private inline fun getMetaOffset(rowId: Int): Int {
+        return rowId * 16
+    }
+
+    override fun getBytes(rowId: Int): ByteArray {
+        val metaOffset = getMetaOffset(rowId)
+        val stringOffset = metaSlice.getLong(metaOffset).toInt()
+        val stringLen = metaSlice.getLong(metaOffset + 8).toInt()
+        return blobSlice.getBytes(stringOffset, stringLen)
+    }
+
+    override fun getSlice(rowId: Int): Slice {
+        val metaOffset = getMetaOffset(rowId)
+        val stringOffset = metaSlice.getLong(metaOffset).toInt()
+        val stringLen = metaSlice.getLong(metaOffset + 8).toInt()
+        return blobSlice.slice(stringOffset, stringLen)
+    }
+
+    override fun isNull(rowId: Int): Boolean {
+        return false
+    }
+
+    override fun resetCursor() {
+        // NOP
+    }
+}
+
 /**
- * Dense column implementation.
+ * Dense number column implementation.
  */
-class DenseColumn : ColumnValues {
+class DenseNumberColumn : NumberColumnValues {
     override val type: BlockType
     override val elementsCount: Int
     override val elementBytesSize: Int
@@ -77,8 +162,14 @@ class DenseColumn : ColumnValues {
 
     override fun getBytes(rowId: Int): ByteArray {
         val resultArray = ByteArray(elementBytesSize)
-        dataSlice.getBytes(rowId, resultArray, 0, elementBytesSize)
+        val offset = rowId * elementBytesSize
+        dataSlice.getBytes(offset, resultArray, 0, elementBytesSize)
         return resultArray
+    }
+
+    override fun getSlice(rowId: Int): Slice {
+        val offset = rowId * elementBytesSize
+        return dataSlice.slice(offset, elementBytesSize)
     }
 
     override fun isNull(rowId: Int): Boolean {
@@ -91,10 +182,10 @@ class DenseColumn : ColumnValues {
 }
 
 /**
- * Sparse column iterator-like implementation.
+ * Sparse number column iterator-like implementation.
  * Only further records can be fetched (n, n+x), one cannot ask for earlier ones unless [resetCursor] is called.
  */
-class SparseColumn : ColumnValues {
+class SparseNumberColumn : NumberColumnValues {
     override val type: BlockType
     override val elementsCount: Int
     override val elementBytesSize: Int
@@ -121,6 +212,12 @@ class SparseColumn : ColumnValues {
         val resultArray = ByteArray(elementBytesSize)
         dataSlice.getBytes(rowId, resultArray, 0, elementBytesSize)
         return resultArray
+    }
+
+    override fun getSlice(rowId: Int): Slice {
+        moveCursor(rowId)
+        val offset = currentPosition * elementBytesSize
+        return dataSlice.slice(offset, elementBytesSize)
     }
 
     override fun isNull(rowId: Int): Boolean {

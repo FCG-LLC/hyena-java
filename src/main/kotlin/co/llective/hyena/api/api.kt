@@ -77,7 +77,10 @@ enum class BlockType {
     U32Sparse,
     U64Sparse,
     U128Sparse,
-    String;
+
+    // String
+    StringDense;
+//    StringSparse;
 
     fun mapToFilterType(): FilterType =
             when (this) {
@@ -91,7 +94,8 @@ enum class BlockType {
                 U32Dense, U32Sparse -> FilterType.U32
                 U64Dense, U64Sparse -> FilterType.U64
                 U128Dense, U128Sparse -> FilterType.U128
-                String -> TODO()
+                StringDense -> FilterType.String
+//                StringDense, StringSparse -> FilterType.String
             }
 
     fun isDense(): Boolean =
@@ -105,7 +109,8 @@ enum class BlockType {
                 BlockType.U16Dense,
                 BlockType.U32Dense,
                 BlockType.U64Dense,
-                BlockType.U128Dense -> true
+                BlockType.U128Dense,
+                BlockType.StringDense -> true
 
                 else -> false
             }
@@ -139,7 +144,7 @@ enum class BlockType {
                 BlockType.I128Sparse,
                 BlockType.U128Sparse -> Size.Bit128
 
-                BlockType.String -> Size.Varying
+                BlockType.StringDense -> Size.Varying
             }
 }
 
@@ -314,7 +319,7 @@ open class DenseBlock<T : Number> : Block {
             BlockType.U32Sparse,
             BlockType.U64Sparse ->
                 throw IllegalArgumentException("Can't create a dense block with sparse data type")
-            BlockType.String ->
+            BlockType.StringDense ->
                 throw IllegalArgumentException("Can't create a dense block with String data type")
             else -> { /* OK, do nothing */
             }
@@ -375,7 +380,7 @@ class SparseBlock<T : Number> : Block {
             BlockType.U32Dense,
             BlockType.U64Dense ->
                 throw IllegalArgumentException("Can't create a dense block with dense data type")
-            BlockType.String ->
+            BlockType.StringDense ->
                 throw IllegalArgumentException("Can't create a dense block with String data type")
             else -> { /* OK, do nothing */
             }
@@ -430,7 +435,7 @@ class StringBlock : Block {
     private var currentPosition = 0
 
     private constructor(offsetData: MutableList<Int>, valueStartPositions: MutableList<Long>)
-            : super(BlockType.String) {
+            : super(BlockType.StringDense) {
         this.offsetData = offsetData
         this.valueStartPositions = valueStartPositions
     }

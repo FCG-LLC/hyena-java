@@ -89,11 +89,7 @@ object MessageDecoder {
             val dataPresent = buf.get()
             var column: ColumnValues
             column = if (dataPresent == 0.toByte()) {
-                if (columnType.isDense()) {
-                    DenseColumn(columnType, Slices.EMPTY_SLICE, 0)
-                } else {
-                    SparseColumn(columnType, Slices.EMPTY_SLICE, Slices.EMPTY_SLICE, 0)
-                }
+                EmptyColumn(columnType)
             } else {
                 decodeColumnValues(buf)
             }
@@ -106,15 +102,37 @@ object MessageDecoder {
         val type = BlockType.values()[buf.int]
         val recordsCount = buf.long.toInt()
 
-        val column = if (type.isDense()) {
-            val slice = createDataSlice(type, recordsCount, buf)
-            DenseColumn(type, slice, recordsCount)
-        } else {
-            val slice = createDataSlice(type, recordsCount, buf)
-            val indexSlice = createIndexSlice(recordsCount, buf)
-            SparseColumn(type, slice, indexSlice, recordsCount)
+        val column = when {
+            type == BlockType.StringDense -> {
+                val metaSlice = createStringMetadataSlice(buf)
+                val blobSlice = createStringBlobSlice(buf)
+                DenseStringColumn(recordsCount, metaSlice, blobSlice)
+            }
+            type.isDense() -> {
+                val slice = createDataSlice(type, recordsCount, buf)
+                DenseNumberColumn(type, slice, recordsCount)
+            }
+            else -> {
+                val slice = createDataSlice(type, recordsCount, buf)
+                val indexSlice = createIndexSlice(recordsCount, buf)
+                SparseNumberColumn(type, slice, indexSlice, recordsCount)
+            }
         }
         return column
+    }
+
+    private fun createStringMetadataSlice(buf: ByteBuffer): Slice {
+        val metadataLen = buf.long.toInt()
+        val bytesToAllocate = metadataLen * 2 * 8 // pairs of 64bit
+        val dstArray = ByteArray(bytesToAllocate)
+        return Slices.wrappedBuffer(dstArray, 0, dstArray.size)
+    }
+
+    private fun createStringBlobSlice(buf: ByteBuffer): Slice {
+        val blobLen = buf.long.toInt()
+        val bytesToAllocate = blobLen * 8 // utf-8 chars
+        val dstArray = ByteArray(bytesToAllocate)
+        return Slices.wrappedBuffer(dstArray, 0, dstArray.size)
     }
 
     private fun createDataSlice(type: BlockType, recordsCount: Int, buf: ByteBuffer): Slice {
