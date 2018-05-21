@@ -143,6 +143,33 @@ class DenseStringColumn : StringColumnValues {
     }
 }
 
+class SimpleDenseStringColumn: StringColumnValues {
+    override val type: BlockType = BlockType.StringDense
+    override val elementsCount: Int
+    private val strings: List<Slice>
+
+    constructor(size: Int, strings: List<Slice>) {
+        this.elementsCount = size
+        this.strings = strings
+    }
+
+    override fun getBytes(rowId: Int): ByteArray {
+        return strings[rowId].bytes
+    }
+
+    override fun getSlice(rowId: Int): Slice {
+        return strings[rowId]
+    }
+
+    override fun isNull(rowId: Int): Boolean {
+        return false
+    }
+
+    override fun resetCursor() {
+        // NOP
+    }
+}
+
 /**
  * Dense number column implementation.
  */

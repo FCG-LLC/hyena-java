@@ -104,9 +104,11 @@ object MessageDecoder {
 
         val column = when {
             type == BlockType.StringDense -> {
-                val metaSlice = createStringMetadataSlice(buf)
-                val blobSlice = createStringBlobSlice(buf)
-                DenseStringColumn(recordsCount, metaSlice, blobSlice)
+//                val metaSlice = createStringMetadataSlice(buf)
+//                val blobSlice = createStringBlobSlice(buf)
+//                DenseStringColumn(recordsCount, metaSlice, blobSlice)
+                val slices = createSimpleStringSlices(buf)
+                SimpleDenseStringColumn(recordsCount, slices)
             }
             type.isDense() -> {
                 val slice = createDataSlice(type, recordsCount, buf)
@@ -127,6 +129,19 @@ object MessageDecoder {
         val dstArray = ByteArray(bytesToAllocate)
         buf.get(dstArray)
         return Slices.wrappedBuffer(dstArray, 0, dstArray.size)
+    }
+
+    private fun createSimpleStringSlices(buf: ByteBuffer): LinkedList<Slice> {
+        val stringsNumber = buf.long.toInt()
+        val strings = LinkedList<Slice>()
+        for (x in 0 until stringsNumber) {
+            val stringLen = buf.long.toInt()
+            val stringArray = ByteArray(stringLen)
+            buf.get(stringArray)
+            val slice = Slices.wrappedBuffer(stringArray, 0, stringLen)
+            strings.add(slice)
+        }
+        return strings
     }
 
     private fun createStringBlobSlice(buf: ByteBuffer): Slice {
