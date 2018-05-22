@@ -23,7 +23,7 @@ object MessageBuilderTest : Spek({
         )
         val stringScanFilter = ScanFilter(
                 col1,
-                ScanComparison.Eq,
+                ScanComparison.Contains,
                 FilterType.String,
                 "five"
         )

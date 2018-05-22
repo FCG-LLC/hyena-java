@@ -37,7 +37,14 @@ enum class ScanComparison {
     Eq,
     GtEq,
     Gt,
-    NotEq
+    NotEq,
+    In,
+
+    //String ones
+    StartsWith,
+    EndsWith,
+    Contains,
+    Matches
 }
 
 enum class Size(val bytes: Int) {
