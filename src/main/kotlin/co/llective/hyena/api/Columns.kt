@@ -143,7 +143,7 @@ class DenseStringColumn : StringColumnValues {
     }
 }
 
-class SimpleDenseStringColumn: StringColumnValues {
+class SimpleDenseStringColumn : StringColumnValues {
     override val type: BlockType = BlockType.StringDense
     override val elementsCount: Int
     private val strings: List<Slice>

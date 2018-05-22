@@ -129,39 +129,12 @@ object MessageDecoderTest : Spek({
             assert.that(result.isNull(index), equalTo(false))
         }
 
-//        it("Correctly deserializes non-empty DenseStringColumn") {
-//            val value1 = "one"
-//            val value2 = "five"
-//            val byteBuffer = ByteBuffer.allocate(69)
-//            byteBuffer.order(ByteOrder.LITTLE_ENDIAN)
-//            byteBuffer.putInt(BlockType.StringDense.ordinal)
-//            byteBuffer.putLong(2)   // records count
-//            //metadata
-//            byteBuffer.putLong(2) // metadata len
-//            byteBuffer.putLong(0) // first string start index
-//            byteBuffer.putLong(3) // first string len
-//            byteBuffer.putLong(3) // second string start index
-//            byteBuffer.putLong(4) // second string len
-//            //string blob
-//            byteBuffer.putLong(7) // blob len
-//            byteBuffer.put(value1.toByteArray(HyenaApi.UTF8_CHARSET))
-//            byteBuffer.put(value2.toByteArray(HyenaApi.UTF8_CHARSET))
-//
-//            byteBuffer.position(0)
-//
-//            val result = MessageDecoder.decodeColumnValues(byteBuffer)
-//            assert.that(result.type, equalTo(BlockType.StringDense))
-//            assert.that(result.elementsCount, equalTo(2))
-//            assert.that(result.getSlice(0), equalTo(Slices.utf8Slice(value1)))
-//            assert.that(result.getSlice(1), equalTo(Slices.utf8Slice(value2)))
-//        }
         it("Correctly deserializes non-empty SimpleDenseStringColumn") {
             val value1 = "one"
             val value2 = "five"
             val byteBuffer = ByteBuffer.allocate(43)
             byteBuffer.order(ByteOrder.LITTLE_ENDIAN)
             byteBuffer.putInt(BlockType.StringDense.ordinal)
-            byteBuffer.putLong(2)   // records count
             //strings collection
             byteBuffer.putLong(2)   // records count (collection len)
             byteBuffer.putLong(value1.length.toLong()) // string1 len
