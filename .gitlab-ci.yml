@@ -1,0 +1,5 @@
+run-protocol-tests:
+  script:
+  - sudo docker run --rm --env HYENA_JAVA_COMMIT="$CI_COMMIT_SHA" --env HYENA_PRIVATE_KEY="$HYENA_PRIVATE_KEY" portus.cs.int:5000/dev/hyena-proto-test
+  tags:
+  - docker
