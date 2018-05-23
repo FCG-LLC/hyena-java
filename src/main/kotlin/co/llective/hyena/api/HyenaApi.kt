@@ -15,9 +15,14 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.schedule
 
 open class HyenaApi internal constructor(private val connection: ConnectionManager,
-                                         private val catalogRefresh: Long = CATALOG_CACHE_TIMEOUT_MS) {
-    constructor(address: String, catalogRefresh: Long = CATALOG_CACHE_TIMEOUT_MS)
+                                         private val catalogRefresh: Long) {
+    constructor(address: String, catalogRefresh: Long)
             : this(ConnectionManager(address), catalogRefresh)
+
+    constructor(address: String)
+            : this(ConnectionManager(address), CATALOG_CACHE_TIMEOUT_MS)
+
+    constructor(connection: ConnectionManager) : this(connection, CATALOG_CACHE_TIMEOUT_MS)
 
     private val catalogCache: LoadingCache<Int, Catalog> = CacheBuilder.newBuilder()
             .maximumSize(1)
@@ -96,6 +101,9 @@ open class HyenaApi internal constructor(private val connection: ConnectionManag
     }
 
     @Throws(IOException::class, ReplyException::class)
+    fun refreshCatalog(): Catalog = refreshCatalog(false)
+
+    @Throws(IOException::class, ReplyException::class)
     fun refreshCatalog(force: Boolean = false): Catalog =
         try {
             if (force) {
@@ -118,7 +126,7 @@ open class HyenaApi internal constructor(private val connection: ConnectionManag
 
         val UTF8_CHARSET: Charset = Charset.forName("UTF-8")
         private const val CATALOG_CACHE_TIMEOUT_MS: Long = 5*60*1000 // 5 minutes
-        private const val DUMMY_CACHE_KEY:Int = 0x0BCABABA;
+        private const val DUMMY_CACHE_KEY:Int = 0x0BCABABA
     }
 }
 
