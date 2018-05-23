@@ -96,8 +96,11 @@ open class HyenaApi internal constructor(private val connection: ConnectionManag
     }
 
     @Throws(IOException::class, ReplyException::class)
-    fun refreshCatalog(): Catalog =
+    fun refreshCatalog(force: Boolean = false): Catalog =
         try {
+            if (force) {
+                catalogCache.invalidate(DUMMY_CACHE_KEY)
+            }
             catalogCache[DUMMY_CACHE_KEY]
         } catch (e: ExecutionException) {
             throw e.cause ?: ReplyException("Unknown exception")
