@@ -10,6 +10,7 @@ import com.nhaarman.mockito_kotlin.*
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
+import java.nio.ByteBuffer
 import java.util.*
 import java.util.concurrent.Future
 
@@ -222,7 +223,10 @@ object ConnectionManagerTest : Spek({
         it("resets connection when keep alive failed") {
             val serializedKeepAliveReq = MessageBuilder.buildKeepAliveRequest()
             val mockedConnection = mock<PeerConnection> {}
-            doNothing().whenever(mockedConnection).synchronizedReq(serializedKeepAliveReq)
+
+            whenever(mockedConnection.synchronizedReq(serializedKeepAliveReq))
+                    .thenThrow(nanomsg.exceptions.IOException("Testing", 110))
+                    .then { /* Do nothing */ }
             doNothing().whenever(mockedConnection).close()
             val mockedManager = mock<PeerConnectionManager> {
                 on { getPeerConnection() } doReturn mockedConnection
@@ -233,23 +237,6 @@ object ConnectionManagerTest : Spek({
             connectionManager.keepAlive()
             verify(mockedConnection, atLeast(1)).close()
             verify(mockedManager, atLeast(1)).getPeerConnection()
-            assert.that(connectionManager.keepAliveResponse.get(), equalTo(true))
-
-            connectionManager.shutDown()
-        }
-
-        it("fails keep alive when timeout on socket") {
-            val serializedKeepAliveReq = MessageBuilder.buildKeepAliveRequest()
-            val mockedConnection = mock<PeerConnection> {}
-            doThrow(nanomsg.exceptions.IOException("")).whenever(mockedConnection).synchronizedReq(serializedKeepAliveReq)
-            doNothing().whenever(mockedConnection).close()
-            val mockedManager = mock<PeerConnectionManager> {
-                on { getPeerConnection() } doReturn mockedConnection
-            }
-            val connectionManager = ConnectionManager(hyenaAddress, mockedManager)
-
-            connectionManager.keepAlive()
-            assert.that(false, equalTo(connectionManager.keepAliveResponse.get()))
 
             connectionManager.shutDown()
         }
