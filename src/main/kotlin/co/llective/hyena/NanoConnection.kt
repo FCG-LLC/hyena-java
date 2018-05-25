@@ -26,7 +26,7 @@ abstract class NanoConnection(val socketAddress: String, internal var connected:
         synchronized(lock) {
             if (!connected) {
                 socket = newSocketInstance()
-                log.info("Opening new connection to: " + socketAddress)
+                log.info("Opening new connection to: $socketAddress")
                 socket.setSocketOpt(Nanomsg.SocketOption.NN_RCVTIMEO, 60000)
                 socket.setSocketOpt(Nanomsg.SocketOption.NN_SNDTIMEO, 60000)
                 socket.connect(socketAddress)
@@ -39,6 +39,7 @@ abstract class NanoConnection(val socketAddress: String, internal var connected:
      * Not thread-safe operation!
      */
     internal fun getRespBuffer(wait: Boolean): ByteBuffer {
+        ensureConnection()
         val replyBytes: ByteArray =
                 if (wait)
                     socket.recvBytes()
@@ -52,12 +53,8 @@ abstract class NanoConnection(val socketAddress: String, internal var connected:
     open fun synchronizedReq(request: ByteArray) {
         ensureConnection()
 
-        try {
-            synchronized(lock) {
-                socket.send(request)
-            }
-        } catch (exc: IOException) {
-            throw IOException("Nanomsg error: " + Nanomsg.getError(), exc)
+        synchronized(lock) {
+            socket.send(request)
         }
     }
 

@@ -3,6 +3,7 @@ package co.llective.hyena.api
 import co.llective.hyena.PeerConnection
 import co.llective.hyena.PeerConnectionManager
 import io.airlift.log.Logger
+import nanomsg.Nanomsg
 import nanomsg.exceptions.EAgainException
 import java.io.IOException
 import java.nio.charset.Charset
@@ -141,41 +142,57 @@ open class ConnectionManager {
         keepAliveScheduler.schedule(
                 KEEP_ALIVE_START_DELAY_MS,
                 KEEP_ALIVE_INTERVAL_MS,
-                {
-                    keepAlive()
-                }
+                { keepAlive() }
         )
     }
 
     internal fun keepAlive() {
         try {
-            if (keepAliveResponse.get()) {
-                sendKeepAlive()
-            } else {
-                log.error("Resetting connection - no keepalive response")
-                connection.close()
-                connection = connectionManager.getPeerConnection()
-                keepAliveResponse.set(true)
-            }
+            sendKeepAlive()
         } catch (exc: nanomsg.exceptions.IOException) {
             log.error("Timeout on ${connection.socketAddress} socket", exc)
-            keepAliveResponse.set(false)
         }
+    }
+
+    private fun reconnect() {
+        connection.close()
+        connection = connectionManager.getPeerConnection()
     }
 
     constructor(hyenaAddress: String) : this(hyenaAddress, PeerConnectionManager(hyenaAddress))
 
+    private fun retrySend(body: () -> Unit) {
+        var retrySend = true
+        while (retrySend) {
+            try {
+                body()
+                retrySend = false
+            } catch (e: nanomsg.exceptions.IOException) {
+                if (e.errno == SEND_TIMEOUT_ERRNO) {
+                    log.warn("Send timeout. Reconnecting")
+                    reconnect()
+                    retrySend = true
+                } else {
+                    // Wrap in regular IOException
+                    throw IOException("Nanomsg error: " + Nanomsg.getError(), e)
+                }
+            }
+        }
+    }
+
     private fun sendKeepAlive() {
         val bytes = MessageBuilder.buildKeepAliveRequest()
-        connection.synchronizedReq(bytes)
-
+        retrySend { connection.synchronizedReq(bytes) }
     }
 
     open fun sendRequest(message: ByteArray): Future<*> {
         val messageId = UUID.randomUUID().leastSignificantBits
         val future = CompletableFuture<Any>()
         requests[messageId] = future
-        connection.synchronizedReq(request = MessageBuilder.wrapRequestIntoPeerRequest(PeerRequestType.Request, messageId, message))
+        retrySend {
+            connection.synchronizedReq(request = MessageBuilder.wrapRequestIntoPeerRequest(PeerRequestType.Request, messageId, message))
+            true
+        }
         return future
     }
 
@@ -215,5 +232,6 @@ open class ConnectionManager {
 
     companion object {
         private val log = Logger.get(ConnectionManager::class.java)
+        internal const val SEND_TIMEOUT_ERRNO: Int = 110
     }
 }
