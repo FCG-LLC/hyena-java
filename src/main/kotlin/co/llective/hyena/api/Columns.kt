@@ -90,7 +90,7 @@ abstract class NumberColumnValues : ColumnValues() {
             BlockType.U32Sparse, BlockType.U32Dense -> dataSlice.getUnsignedInt(bytesOffset)
             BlockType.U64Sparse, BlockType.U64Dense -> dataSlice.getLong(bytesOffset)
             BlockType.U128Sparse, BlockType.I128Sparse, BlockType.U128Dense, BlockType.I128Dense -> TODO("128bits support")
-            BlockType.StringDense -> TODO("Strings support")
+            BlockType.StringDense, BlockType.StringBloomDense -> TODO("Strings support")
         }
     }
 }
