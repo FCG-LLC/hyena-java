@@ -160,6 +160,35 @@ object HyenaApiTest : Spek({
             val reply = sut.refreshCatalog()
             assert.that(catalog, sameInstance(reply))
         }
+
+        it("Refresh can be forced") {
+            val catalog1 = mock<Catalog>()
+            val catalog2 = mock<Catalog>()
+            var called = false
+            val mockedFuture = mock<Future<Any>> {
+                on { get() } doAnswer {
+                    if (!called) {
+                        called = true
+                        CatalogReply(catalog1)
+                    } else {
+                        CatalogReply(catalog2)
+                    }
+                }
+            }
+            val connectionManager = mock<ConnectionManager> {
+                on { sendRequest(any()) } doReturn mockedFuture
+            }
+            val sut = HyenaApi(connectionManager)
+
+            var reply = sut.refreshCatalog()
+            assert.that(catalog1, sameInstance(reply))
+
+            reply = sut.refreshCatalog()
+            assert.that(catalog1, sameInstance(reply))
+
+            reply = sut.refreshCatalog(true)
+            assert.that(catalog2, sameInstance(reply))
+        }
     }
 
     describe("Scan") {

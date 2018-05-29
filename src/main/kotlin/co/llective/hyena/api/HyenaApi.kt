@@ -2,20 +2,39 @@ package co.llective.hyena.api
 
 import co.llective.hyena.PeerConnection
 import co.llective.hyena.PeerConnectionManager
+import com.google.common.cache.CacheBuilder
+import com.google.common.cache.CacheLoader
+import com.google.common.cache.LoadingCache
 import io.airlift.log.Logger
 import nanomsg.Nanomsg
 import nanomsg.exceptions.EAgainException
 import java.io.IOException
 import java.nio.charset.Charset
 import java.util.*
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Future
+import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.schedule
 
-open class HyenaApi internal constructor(private val connection: ConnectionManager) {
-    constructor(address: String) : this(ConnectionManager(address))
+open class HyenaApi internal constructor(private val connection: ConnectionManager,
+                                         private val catalogRefresh: Long) {
+    constructor(address: String, catalogRefresh: Long)
+            : this(ConnectionManager(address), catalogRefresh)
+
+    constructor(address: String)
+            : this(ConnectionManager(address), CATALOG_CACHE_TIMEOUT_MS)
+
+    constructor(connection: ConnectionManager) : this(connection, CATALOG_CACHE_TIMEOUT_MS)
+
+    private val catalogCache: LoadingCache<Int, Catalog> = CacheBuilder.newBuilder()
+            .maximumSize(1)
+            .expireAfterWrite(catalogRefresh, TimeUnit.MILLISECONDS)
+            .build(object : CacheLoader<Int, Catalog>() {
+                override fun load(key: Int): Catalog {
+                    log.info("Refreshing catalog")
+                    val message = MessageBuilder.buildRefreshCatalogMessage()
+                    return makeApiCall(message, CatalogReply::class.java) { reply -> reply.result }
+                }
+            })
 
     private fun <T, C> makeApiCall(message: ByteArray, expected: Class<C>, extract: (C) -> T): T {
         val replyFuture = connection.sendRequest(message)
@@ -83,10 +102,18 @@ open class HyenaApi internal constructor(private val connection: ConnectionManag
     }
 
     @Throws(IOException::class, ReplyException::class)
-    fun refreshCatalog(): Catalog {
-        val message = MessageBuilder.buildRefreshCatalogMessage()
-        return makeApiCall(message, CatalogReply::class.java) { reply -> reply.result }
-    }
+    fun refreshCatalog(): Catalog = refreshCatalog(false)
+
+    @Throws(IOException::class, ReplyException::class)
+    fun refreshCatalog(force: Boolean = false): Catalog =
+        try {
+            if (force) {
+                catalogCache.invalidate(DUMMY_CACHE_KEY)
+            }
+            catalogCache[DUMMY_CACHE_KEY]
+        } catch (e: ExecutionException) {
+            throw e.cause ?: ReplyException("Unknown exception")
+        }
 
     /**
      * Cleans all resources attached to connection.
@@ -99,6 +126,8 @@ open class HyenaApi internal constructor(private val connection: ConnectionManag
         private val log = Logger.get(HyenaApi::class.java)
 
         val UTF8_CHARSET: Charset = Charset.forName("UTF-8")
+        private const val CATALOG_CACHE_TIMEOUT_MS: Long = 5*60*1000 // 5 minutes
+        private const val DUMMY_CACHE_KEY:Int = 0x0BCABABA
     }
 }
 
