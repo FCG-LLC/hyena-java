@@ -1,6 +1,5 @@
 package co.llective.hyena.api
 
-import co.llective.hyena.api.HyenaApi.Companion.UTF8_CHARSET
 import org.apache.commons.lang3.StringUtils
 import java.io.DataOutput
 import java.lang.IllegalArgumentException
@@ -38,7 +37,14 @@ enum class ScanComparison {
     Eq,
     GtEq,
     Gt,
-    NotEq
+    NotEq,
+    In,
+
+    //String ones
+    StartsWith,
+    EndsWith,
+    Contains,
+    Matches
 }
 
 enum class Size(val bytes: Int) {
@@ -64,6 +70,11 @@ enum class BlockType {
     U64Dense,
     U128Dense,
 
+    // Dense, String
+    StringDense,
+    // Temporary
+    StringBloomDense,
+
     // Sparse, Signed
     I8Sparse,
     I16Sparse,
@@ -76,8 +87,7 @@ enum class BlockType {
     U16Sparse,
     U32Sparse,
     U64Sparse,
-    U128Sparse,
-    String;
+    U128Sparse;
 
     fun mapToFilterType(): FilterType =
             when (this) {
@@ -91,7 +101,8 @@ enum class BlockType {
                 U32Dense, U32Sparse -> FilterType.U32
                 U64Dense, U64Sparse -> FilterType.U64
                 U128Dense, U128Sparse -> FilterType.U128
-                String -> TODO()
+                StringDense -> FilterType.String
+                StringBloomDense -> FilterType.String
             }
 
     fun isDense(): Boolean =
@@ -105,7 +116,9 @@ enum class BlockType {
                 BlockType.U16Dense,
                 BlockType.U32Dense,
                 BlockType.U64Dense,
-                BlockType.U128Dense -> true
+                BlockType.U128Dense,
+                BlockType.StringDense,
+                BlockType.StringBloomDense -> true
 
                 else -> false
             }
@@ -139,7 +152,8 @@ enum class BlockType {
                 BlockType.I128Sparse,
                 BlockType.U128Sparse -> Size.Bit128
 
-                BlockType.String -> Size.Varying
+                BlockType.StringDense,
+                BlockType.StringBloomDense -> Size.Varying
             }
 }
 
@@ -172,15 +186,14 @@ data class ScanFilter(
         val column: Long,
         val op: ScanComparison = ScanComparison.Eq,
         val type: FilterType,
-        val value: Any,
-        val strValue: Optional<String>
+        val value: Any
 ) {
-    override fun toString(): String = "$column ${op.name} $value/$strValue"
+    override fun toString(): String = "$column ${op.name} $value"
 
     companion object {
         @JvmStatic
         fun empty(type: FilterType, value: Any): ScanFilter {
-            return ScanFilter(0, ScanComparison.Eq, type, value, Optional.empty())
+            return ScanFilter(0, ScanComparison.Eq, type, value)
         }
     }
 }
@@ -314,7 +327,7 @@ open class DenseBlock<T : Number> : Block {
             BlockType.U32Sparse,
             BlockType.U64Sparse ->
                 throw IllegalArgumentException("Can't create a dense block with sparse data type")
-            BlockType.String ->
+            BlockType.StringDense ->
                 throw IllegalArgumentException("Can't create a dense block with String data type")
             else -> { /* OK, do nothing */
             }
@@ -375,7 +388,7 @@ class SparseBlock<T : Number> : Block {
             BlockType.U32Dense,
             BlockType.U64Dense ->
                 throw IllegalArgumentException("Can't create a dense block with dense data type")
-            BlockType.String ->
+            BlockType.StringDense ->
                 throw IllegalArgumentException("Can't create a dense block with String data type")
             else -> { /* OK, do nothing */
             }
@@ -420,54 +433,32 @@ class SparseBlock<T : Number> : Block {
 
 class StringBlock : Block {
     override fun write(dos: DataOutput) {
-        TODO("not implemented") //Will be implemented when Hyena handles it
+        dos.writeLong(strings.size.toLong())
+        for (string in strings) {
+            dos.writeLong(string.length.toLong())
+            dos.writeBytes(string)
+        }
     }
 
-    var bytes: ByteArray? = null
-    val offsetData: MutableList<Int>
-    val valueStartPositions: MutableList<Long>
+    val strings: MutableList<String>
 
-    private var currentPosition = 0
-
-    private constructor(offsetData: MutableList<Int>, valueStartPositions: MutableList<Long>)
-            : super(BlockType.String) {
-        this.offsetData = offsetData
-        this.valueStartPositions = valueStartPositions
+    private constructor(strings: MutableList<String>)
+            : super(BlockType.StringDense) {
+        this.strings = strings
     }
 
     constructor(size: Int)
-            : this(offsetData = ArrayList<Int>(size), valueStartPositions = ArrayList<Long>(size)) {
+            : this(strings = ArrayList<String>(size)) {
         if (size <= 0) {
             throw IllegalArgumentException("Data size must be positive")
         }
     }
 
-    fun getMaybe(offset: Int): Optional<String> {
-        while (currentPosition < offsetData.size && offsetData[currentPosition] < offset) {
-            currentPosition++
-        }
-
-        if (currentPosition < offsetData.size && offsetData[currentPosition] == offset) {
-            val startPosition = valueStartPositions[currentPosition].toInt()
-            val endPosition = if (currentPosition == offsetData.size - 1) {
-                bytes!!.size
-            } else {
-                valueStartPositions[currentPosition + 1].toInt()
-            }
-
-            val strBytes = Arrays.copyOfRange(bytes!!, startPosition, endPosition)
-            return Optional.of(String(strBytes, UTF8_CHARSET))
-        }
-
-        return Optional.empty()
+    fun add(string: String) {
+        strings.add(string)
     }
 
-    fun add(offset: Int, value: Long) {
-        offsetData.add(offset)
-        valueStartPositions.add(value)
-    }
-
-    override fun count(): Int = offsetData.size
+    override fun count(): Int = strings.size
 
     override fun printNumbers(): String = "Not implemented"
 }

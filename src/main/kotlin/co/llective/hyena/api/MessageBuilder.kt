@@ -191,11 +191,7 @@ object MessageBuilder {
         dos.writeLong(filter.column)
         dos.writeInt(filter.op.ordinal)
         writeFilterValue(dos, filter)
-        if (filter.strValue.isPresent) {
-            writeString(dos, filter.strValue.get())
-        } else {
-            dos.writeLong(0) // Length of string: 0
-        }
+
         baos.close()
 
         return baos.toByteArray()
@@ -220,13 +216,15 @@ object MessageBuilder {
             FilterType.I16 -> dos.writeShort((filter.value as Long).toInt())
             FilterType.I32 -> dos.writeInt((filter.value as Long).toInt())
             FilterType.I64 -> dos.writeLong(filter.value as Long)
+            FilterType.I128 -> TODO()
 
             FilterType.U8 -> dos.writeByte((filter.value as Long).toInt())
             FilterType.U16 -> dos.writeShort((filter.value as Long).toInt())
             FilterType.U32 -> dos.writeInt((filter.value as Long).toInt())
             FilterType.U64 -> dos.writeLong(filter.value as Long)
+            FilterType.U128 -> TODO()
 
-            else -> TODO()
+            FilterType.String -> writeString(dos, filter.value as String)
         }
     }
 }

@@ -105,8 +105,7 @@ fun genScan(options: GenOptions) {
                 options.filterColumns[i],
                 options.filterOperators[i],
                 options.filterTypes[i],
-                Helper.convertValue(options.filterValues[i], options.filterTypes[i]),
-                Optional.empty())
+                Helper.convertValue(options.filterValues[i], options.filterTypes[i]))
     }
     val sr = ScanRequest(
             options.minTs,
