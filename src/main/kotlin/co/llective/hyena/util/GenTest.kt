@@ -149,7 +149,9 @@ fun genInsert(options: GenOptions) {
 }
 
 fun genBlock(rows: Int, blockType: BlockType): Block =
-        if (blockType.isDense()) {
+        if (blockType == BlockType.StringDense) {
+            Helper.randomStringBlock(rows)
+        } else if (blockType.isDense()) {
             Helper.randomDenseBlock(rows, blockType)
         } else {
             Helper.randomSparseBlock(rows, blockType)

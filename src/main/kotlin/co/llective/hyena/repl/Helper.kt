@@ -3,9 +3,17 @@ package co.llective.hyena.repl
 import co.llective.hyena.api.*
 import java.math.BigInteger
 import java.util.*
+import java.util.Locale
+
+
 
 /** This object contains a set of utility function to help play with the REPL */
 object Helper {
+    val upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    val lower = upper.toLowerCase(Locale.ROOT)
+    val digits = "0123456789"
+    val alphanum = upper + lower + digits
+
     @JvmStatic
     fun randomTimestamps(n: Int): List<Long> {
         val list = ArrayList<Long>(n)
@@ -17,6 +25,26 @@ object Helper {
     }
 
     @JvmStatic
+    fun randomStringOfRandomLength(generator: Random): String = randomString(generator, generator.nextInt(256))
+
+    @JvmStatic
+    fun randomString(generator: Random, length: Int): String =
+        (0..length)
+            .map({ _ -> alphanum[generator.nextInt(alphanum.length)]})
+            .joinToString()
+
+    @JvmStatic
+    fun randomStringBlock(n: Int): StringBlock {
+        val block = createBlock(n, BlockType.StringDense) as StringBlock
+        val generator = Random()
+        (0 until n).forEach {
+            block.add(randomStringOfRandomLength(generator))
+        }
+
+        return block
+    }
+
+    @JvmStatic()
     fun randomDenseBlock(n: Int, type: BlockType): Block {
         val block: DenseBlock<*> = createBlock(n, type) as DenseBlock<*>
         val generator = Random()
