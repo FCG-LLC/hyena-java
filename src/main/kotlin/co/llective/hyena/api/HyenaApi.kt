@@ -32,7 +32,12 @@ open class HyenaApi internal constructor(private val connection: ConnectionManag
                 override fun load(key: Int): Catalog {
                     log.info("Refreshing catalog")
                     val message = MessageBuilder.buildRefreshCatalogMessage()
-                    return makeApiCall(message, CatalogReply::class.java) { reply -> reply.result }
+                    val catalog = makeApiCall(message, CatalogReply::class.java) { reply -> reply.result }
+                    val sortedCatalog = Catalog(
+                            catalog.columns.sortedBy { x -> x.id },
+                            catalog.availablePartitions
+                    )
+                    return sortedCatalog
                 }
             })
 
