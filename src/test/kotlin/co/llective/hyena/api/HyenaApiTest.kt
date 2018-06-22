@@ -10,7 +10,6 @@ import com.nhaarman.mockito_kotlin.*
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
-import java.nio.ByteBuffer
 import java.util.*
 import java.util.concurrent.Future
 
@@ -137,7 +136,7 @@ object HyenaApiTest : Spek({
     describe("Refresh catalog") {
         it("Throws on wrong reply") {
             val mockedFuture = mock<Future<Any>> {
-                on { get() } doReturn ListColumnsReply(mock())
+                on { get() } doReturn ListColumnsReply(emptyList())
             }
             val connectionManager = mock<ConnectionManager> {
                 on { sendRequest(any()) } doReturn mockedFuture
@@ -148,7 +147,10 @@ object HyenaApiTest : Spek({
         }
 
         it("Correctly extracts the reply") {
-            val catalog = mock<Catalog>()
+            val catalog = mock<Catalog> {
+                on { columns } doReturn emptyList<Column>()
+                on { availablePartitions } doReturn emptyList<PartitionInfo>()
+            }
             val mockedFuture = mock<Future<Any>> {
                 on { get() } doReturn CatalogReply(catalog)
             }
@@ -158,12 +160,19 @@ object HyenaApiTest : Spek({
             val sut = HyenaApi(connectionManager)
 
             val reply = sut.refreshCatalog()
-            assert.that(catalog, sameInstance(reply))
+            assert.that(0, equalTo(reply.columns.size))
+            assert.that(0, equalTo(reply.availablePartitions.size))
         }
 
         it("Refresh can be forced") {
-            val catalog1 = mock<Catalog>()
-            val catalog2 = mock<Catalog>()
+            val catalog1 = mock<Catalog>(){
+                on { columns } doReturn emptyList<Column>()
+                on { availablePartitions } doReturn emptyList<PartitionInfo>()
+            }
+            val catalog2 = mock<Catalog>(){
+                on { columns } doReturn listOf<Column>(mock<Column>())
+                on { availablePartitions } doReturn emptyList<PartitionInfo>()
+            }
             var called = false
             val mockedFuture = mock<Future<Any>> {
                 on { get() } doAnswer {
@@ -181,13 +190,13 @@ object HyenaApiTest : Spek({
             val sut = HyenaApi(connectionManager)
 
             var reply = sut.refreshCatalog()
-            assert.that(catalog1, sameInstance(reply))
+            assert.that(0, equalTo(reply.columns.size))
 
             reply = sut.refreshCatalog()
-            assert.that(catalog1, sameInstance(reply))
+            assert.that(0, equalTo(reply.columns.size))
 
             reply = sut.refreshCatalog(true)
-            assert.that(catalog2, sameInstance(reply))
+            assert.that(1, equalTo(reply.columns.size))
         }
     }
 

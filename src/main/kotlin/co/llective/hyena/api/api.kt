@@ -238,8 +238,8 @@ data class PartitionInfo(val minTs: Long, val maxTs: Long, val id: UUID, val loc
     override fun toString(): String = "$id [$minTs-$maxTs]"
 }
 
-open class Catalog(val columns: List<Column> = arrayListOf(),
-                   val availablePartitions: List<PartitionInfo> = arrayListOf()) {
+open class Catalog(open val columns: List<Column> = arrayListOf(),
+                   open val availablePartitions: List<PartitionInfo> = arrayListOf()) {
     override fun toString(): String = "Columns: [${StringUtils.join(columns, ", ")}], " +
             "Partitions: [${StringUtils.join(availablePartitions, ", ")}]"
 }
