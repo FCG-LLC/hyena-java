@@ -72,8 +72,6 @@ enum class BlockType {
 
     // Dense, String
     StringDense,
-    // Temporary
-    StringBloomDense,
 
     // Sparse, Signed
     I8Sparse,
@@ -102,7 +100,6 @@ enum class BlockType {
                 U64Dense, U64Sparse -> FilterType.U64
                 U128Dense, U128Sparse -> FilterType.U128
                 StringDense -> FilterType.String
-                StringBloomDense -> FilterType.String
             }
 
     fun isDense(): Boolean =
@@ -117,9 +114,7 @@ enum class BlockType {
                 BlockType.U32Dense,
                 BlockType.U64Dense,
                 BlockType.U128Dense,
-                BlockType.StringDense,
-                BlockType.StringBloomDense -> true
-
+                BlockType.StringDense -> true
                 else -> false
             }
 
@@ -152,8 +147,7 @@ enum class BlockType {
                 BlockType.I128Sparse,
                 BlockType.U128Sparse -> Size.Bit128
 
-                BlockType.StringDense,
-                BlockType.StringBloomDense -> Size.Varying
+                BlockType.StringDense -> Size.Varying
             }
 }
 
@@ -244,8 +238,8 @@ data class PartitionInfo(val minTs: Long, val maxTs: Long, val id: UUID, val loc
     override fun toString(): String = "$id [$minTs-$maxTs]"
 }
 
-open class Catalog(val columns: List<Column> = arrayListOf(),
-                   val availablePartitions: List<PartitionInfo> = arrayListOf()) {
+open class Catalog(open val columns: List<Column> = arrayListOf(),
+                   open val availablePartitions: List<PartitionInfo> = arrayListOf()) {
     override fun toString(): String = "Columns: [${StringUtils.join(columns, ", ")}], " +
             "Partitions: [${StringUtils.join(availablePartitions, ", ")}]"
 }

@@ -120,8 +120,8 @@ object MessageDecoder {
         return column
     }
 
-    private fun createSimpleStringSlices(stringsNumber: Int, buf: ByteBuffer): LinkedList<Slice> {
-        val strings = LinkedList<Slice>()
+    private fun createSimpleStringSlices(stringsNumber: Int, buf: ByteBuffer): List<Slice> {
+        val strings = ArrayList<Slice>()
         for (x in 0 until stringsNumber) {
             val stringLen = buf.long.toInt()
             val stringArray = ByteArray(stringLen)
