@@ -1,5 +1,6 @@
 package co.llective.hyena.api
 
+import io.airlift.log.Logger
 import io.airlift.slice.Slice
 import io.airlift.slice.Slices
 import java.io.IOException
@@ -9,6 +10,7 @@ import java.util.*
 import kotlin.experimental.and
 
 object MessageDecoder {
+    private val log = Logger.get(MessageDecoder::class.java)
 
     fun decode(buf: ByteBuffer): Reply {
         try {
@@ -79,6 +81,8 @@ object MessageDecoder {
 
     @Throws(IOException::class)
     private fun decodeScanResult(buf: ByteBuffer): ScanResult {
+        val decodeScanStart = System.currentTimeMillis()
+
         val columnNo = buf.long
         val columnMap = HashMap<Long, ColumnValues>()
 
@@ -95,7 +99,11 @@ object MessageDecoder {
             }
             columnMap[columnId] = column
         }
-        return ScanResult(columnMap)
+        val scanResult = ScanResult(columnMap)
+
+        log.warn("ScanResult deserialization took ${System.currentTimeMillis() - decodeScanStart}ms")
+
+        return scanResult
     }
 
     internal fun decodeColumnValues(buf: ByteBuffer): ColumnValues {
