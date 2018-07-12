@@ -178,9 +178,9 @@ data class ScanRequest(var minTs: Long = 0,
 
 data class ScanFilter(
         val column: Long,
-        val op: ScanComparison = ScanComparison.Eq,
+        var op: ScanComparison = ScanComparison.Eq,
         val type: FilterType,
-        val value: Any
+        var value: Any
 ) {
     override fun toString(): String = "$column ${op.name} $value"
 
