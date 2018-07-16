@@ -98,7 +98,8 @@ open class HyenaApi internal constructor(private val connection: ConnectionManag
         val message = MessageBuilder.buildScanMessage(req)
         return makeApiCall(message, ScanReply::class.java) { reply ->
             when (reply.result) {
-                is Left -> reply.result.value
+                is Left ->
+                    reply.result.value
                 is Right -> {
                     throw ReplyException(reply.result.value)
                 }

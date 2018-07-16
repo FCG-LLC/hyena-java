@@ -99,7 +99,15 @@ object MessageDecoder {
             }
             columnMap[columnId] = column
         }
-        val scanResult = ScanResult(columnMap)
+
+        val isChunkOffset = buf.get()
+        val scanConfig = if (isChunkOffset == 1.toByte()) {
+            Optional.of(StreamState(buf.long))
+        } else {
+            Optional.empty()
+        }
+
+        val scanResult = ScanResult(columnMap, scanConfig)
 
         log.warn("ScanResult deserialization took ${System.currentTimeMillis() - decodeScanStart}ms")
 
