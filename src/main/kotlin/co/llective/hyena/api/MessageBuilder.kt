@@ -120,9 +120,7 @@ object MessageBuilder {
             }
         }
 
-        //TODO: proper config
         writeScanConfig(dos, req.scanConfig)
-        dos.writeBoolean(false)
 
         baos.close()
         return baos.toByteArray()

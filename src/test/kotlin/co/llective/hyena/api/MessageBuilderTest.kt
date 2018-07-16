@@ -27,6 +27,11 @@ object MessageBuilderTest : Spek({
                 FilterType.String,
                 "five"
         )
+        val streamConfig = StreamConfig(
+                3L,
+                2L,
+                Optional.of(StreamState(1))
+        )
 
         fun buildWholeScanRequest(scanFilter: ScanFilter): ScanRequest {
             return ScanRequest(
@@ -34,7 +39,8 @@ object MessageBuilderTest : Spek({
                     maxTs,
                     hashSetOf(partitionId1, partitionId2),
                     ScanOrFilters(ScanAndFilters(scanFilter)),
-                    listOf(col1, col2)
+                    listOf(col1, col2),
+                    Optional.of(streamConfig)
             )
         }
 
@@ -60,7 +66,12 @@ object MessageBuilderTest : Spek({
                     1, 0, 0, 0, 0, 0, 0, 0,     // 64 bits scan filter column id
                     numericScanFilter.op.ordinal.toByte(), 0, 0, 0,         // 32 bits scan filter operator id
                     numericScanFilter.type.ordinal.toByte(), 0, 0, 0,       // 32 bits scan filter type
-                    (numericScanFilter.value as Long).toByte(), 0, 0, 0     // 32 bits (u32) scan filter value
+                    (numericScanFilter.value as Long).toByte(), 0, 0, 0,     // 32 bits (u32) scan filter value
+                    1,                          // StreamConfig present
+                    3, 0, 0, 0, 0, 0, 0, 0,     // limit
+                    2, 0, 0, 0, 0, 0, 0, 0,     // threshold
+                    1,                          // StreamState present,
+                    1, 0, 0, 0, 0, 0, 0, 0      // skipped chunks
             )
 
             assert.that(
@@ -97,7 +108,12 @@ object MessageBuilderTest : Spek({
                     'f'.toByte(),
                     'i'.toByte(),
                     'v'.toByte(),
-                    'e'.toByte()
+                    'e'.toByte(),
+                    1,                          // StreamConfig present
+                    3, 0, 0, 0, 0, 0, 0, 0,     // limit
+                    2, 0, 0, 0, 0, 0, 0, 0,     // threshold
+                    1,                          // StreamState present,
+                    1, 0, 0, 0, 0, 0, 0, 0      // skipped chunks
             )
 
             assert.that(
@@ -106,11 +122,12 @@ object MessageBuilderTest : Spek({
             )
         }
 
-        it("builds scan message without partitions and empty projection and filter") {
+        it("builds scan message without partitions and empty projection, filter and stream config") {
             val request = buildWholeScanRequest(numericScanFilter)
             request.partitionIds = hashSetOf()
             request.projection = emptyList()
             request.filters = ScanOrFilters()
+            request.scanConfig = Optional.empty()
 
             val actualBytes = MessageBuilder.buildScanMessage(request)
 
@@ -120,7 +137,8 @@ object MessageBuilderTest : Spek({
                     maxTs.toByte(), 0, 0, 0, 0, 0, 0, 0, // 64 bits max-ts
                     0, 0, 0, 0, 0, 0, 0, 0, // empty hash set
                     0, 0, 0, 0, 0, 0, 0, 0, // 64 bits projection list size
-                    0, 0, 0, 0, 0, 0, 0, 0 // 64 bits scan filter list size
+                    0, 0, 0, 0, 0, 0, 0, 0, // 64 bits scan filter list size
+                    0  // empty streaming config
             )
 
             assert.that(

@@ -6,7 +6,6 @@ import java.util.*
 import java.util.Locale
 
 
-
 /** This object contains a set of utility function to help play with the REPL */
 object Helper {
     val upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -29,9 +28,9 @@ object Helper {
 
     @JvmStatic
     fun randomString(generator: Random, length: Int): String =
-        (0..length)
-            .map({ _ -> alphanum[generator.nextInt(alphanum.length)]})
-            .joinToString()
+            (0..length)
+                    .map({ _ -> alphanum[generator.nextInt(alphanum.length)] })
+                    .joinToString()
 
     @JvmStatic
     fun randomStringBlock(n: Int): StringBlock {

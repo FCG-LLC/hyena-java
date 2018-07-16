@@ -165,11 +165,11 @@ object HyenaApiTest : Spek({
         }
 
         it("Refresh can be forced") {
-            val catalog1 = mock<Catalog>(){
+            val catalog1 = mock<Catalog>() {
                 on { columns } doReturn emptyList<Column>()
                 on { availablePartitions } doReturn emptyList<PartitionInfo>()
             }
-            val catalog2 = mock<Catalog>(){
+            val catalog2 = mock<Catalog>() {
                 on { columns } doReturn listOf<Column>(mock<Column>())
                 on { availablePartitions } doReturn emptyList<PartitionInfo>()
             }

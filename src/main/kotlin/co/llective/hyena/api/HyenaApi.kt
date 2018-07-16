@@ -112,14 +112,14 @@ open class HyenaApi internal constructor(private val connection: ConnectionManag
 
     @Throws(IOException::class, ReplyException::class)
     fun refreshCatalog(force: Boolean = false): Catalog =
-        try {
-            if (force) {
-                catalogCache.invalidate(DUMMY_CACHE_KEY)
+            try {
+                if (force) {
+                    catalogCache.invalidate(DUMMY_CACHE_KEY)
+                }
+                catalogCache[DUMMY_CACHE_KEY]
+            } catch (e: ExecutionException) {
+                throw e.cause ?: ReplyException("Unknown exception")
             }
-            catalogCache[DUMMY_CACHE_KEY]
-        } catch (e: ExecutionException) {
-            throw e.cause ?: ReplyException("Unknown exception")
-        }
 
     /**
      * Cleans all resources attached to connection.
@@ -132,8 +132,8 @@ open class HyenaApi internal constructor(private val connection: ConnectionManag
         private val log = Logger.get(HyenaApi::class.java)
 
         val UTF8_CHARSET: Charset = Charset.forName("UTF-8")
-        private const val CATALOG_CACHE_TIMEOUT_MS: Long = 5*60*1000 // 5 minutes
-        private const val DUMMY_CACHE_KEY:Int = 0x0BCABABA
+        private const val CATALOG_CACHE_TIMEOUT_MS: Long = 5 * 60 * 1000 // 5 minutes
+        private const val DUMMY_CACHE_KEY: Int = 0x0BCABABA
     }
 }
 
