@@ -15,15 +15,26 @@ import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.schedule
 
-open class HyenaApi internal constructor(private val connection: ConnectionManager,
-                                         private val catalogRefresh: Long) {
-    constructor(address: String, catalogRefresh: Long)
-            : this(ConnectionManager(address), catalogRefresh)
+open class HyenaApi private constructor(private val connection: ConnectionManager,
+                                        private val catalogRefresh: Long,
+                                        private val nanomsgPullInterval: Long) {
 
-    constructor(address: String)
-            : this(ConnectionManager(address), CATALOG_CACHE_TIMEOUT_MS)
+    private constructor(builder: Builder) : this(builder.connection!!, builder.catalogRefresh, builder.nanomsgPullIntervalMs)
 
-    constructor(connection: ConnectionManager) : this(connection, CATALOG_CACHE_TIMEOUT_MS)
+    class Builder {
+        var connection: ConnectionManager? = null
+            private set
+        var catalogRefresh: Long = CATALOG_CACHE_TIMEOUT_MS
+            private set
+        var nanomsgPullIntervalMs: Long = NANOMSG_PULL_INTERVAL_MS
+            private set
+
+        fun address(address: String) = apply { this.connection = ConnectionManager(address) }
+        fun connection(connectionManager: ConnectionManager) = apply { this.connection = connectionManager }
+        fun catalogRefresh(catalogRefresh: Long) = apply { this.catalogRefresh = catalogRefresh }
+        fun nanomsgPullIntervalMs(nanomsgPullIntervalMs: Long) = apply { this.nanomsgPullIntervalMs = nanomsgPullIntervalMs }
+        fun build() = HyenaApi(this)
+    }
 
     private val catalogCache: LoadingCache<Int, Catalog> = CacheBuilder.newBuilder()
             .maximumSize(1)
@@ -133,6 +144,7 @@ open class HyenaApi internal constructor(private val connection: ConnectionManag
 
         val UTF8_CHARSET: Charset = Charset.forName("UTF-8")
         private const val CATALOG_CACHE_TIMEOUT_MS: Long = 5 * 60 * 1000 // 5 minutes
+        private const val NANOMSG_PULL_INTERVAL_MS: Long = 50
         private const val DUMMY_CACHE_KEY: Int = 0x0BCABABA
     }
 }
