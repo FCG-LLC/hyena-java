@@ -250,7 +250,7 @@ object ConnectionManagerTest : Spek({
             val mockedManager = mock<PeerConnectionManager> {
                 on { getPeerConnection() } doReturn mockedConnection
             }
-            val connectionManager = ConnectionManager(hyenaAddress, mockedManager)
+            val connectionManager = ConnectionManager(hyenaAddress, mockedManager, 100)
 
             connectionManager.keepAlive()
             verify(mockedConnection, atLeast(1)).synchronizedReq(serializedKeepAliveReq)
@@ -269,7 +269,7 @@ object ConnectionManagerTest : Spek({
             val mockedManager = mock<PeerConnectionManager> {
                 on { getPeerConnection() } doReturn mockedConnection
             }
-            val connectionManager = ConnectionManager(hyenaAddress, mockedManager)
+            val connectionManager = ConnectionManager(hyenaAddress, mockedManager, 100)
             connectionManager.keepAliveResponse.set(false)
 
             connectionManager.keepAlive()
