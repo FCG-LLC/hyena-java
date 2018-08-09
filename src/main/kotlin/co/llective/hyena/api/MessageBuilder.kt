@@ -120,8 +120,28 @@ object MessageBuilder {
             }
         }
 
+        writeScanConfig(dos, req.scanConfig)
+
         baos.close()
         return baos.toByteArray()
+    }
+
+    private fun writeScanConfig(dos: DataOutput, scanConfig: Optional<StreamConfig>) {
+        if (!scanConfig.isPresent) {
+            dos.writeBoolean(false)
+            return
+        }
+        dos.writeBoolean(true)
+        val config = scanConfig.get()
+        dos.writeLong(config.limit)
+        dos.writeLong(config.threshold)
+        if (!config.streamState.isPresent) {
+            dos.writeBoolean(false)
+            return
+        }
+        dos.writeBoolean(true)
+        val streamState = config.streamState.get()
+        dos.writeLong(streamState.skipChunks)
     }
 
     private fun writeUUIDCollection(dos: DataOutput, partitionIds: Set<UUID>) {

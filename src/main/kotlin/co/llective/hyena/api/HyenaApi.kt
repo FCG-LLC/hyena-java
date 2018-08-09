@@ -15,15 +15,33 @@ import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.schedule
 
-open class HyenaApi internal constructor(private val connection: ConnectionManager,
-                                         private val catalogRefresh: Long) {
-    constructor(address: String, catalogRefresh: Long)
-            : this(ConnectionManager(address), catalogRefresh)
+open class HyenaApi private constructor(private val connection: ConnectionManager,
+                                        private val catalogRefresh: Long) {
 
-    constructor(address: String)
-            : this(ConnectionManager(address), CATALOG_CACHE_TIMEOUT_MS)
+    private constructor(builder: Builder) : this(builder.connectionManager!!, builder.catalogRefresh)
 
-    constructor(connection: ConnectionManager) : this(connection, CATALOG_CACHE_TIMEOUT_MS)
+    class Builder {
+        var address: String? = null
+            private set
+        var connectionManager: ConnectionManager? = null
+            private set
+        var catalogRefresh: Long = CATALOG_CACHE_TIMEOUT_MS
+            private set
+        var nanomsgPullIntervalMs: Long = NANOMSG_PULL_INTERVAL_MS
+            private set
+
+        fun address(address: String) = apply { this.address = address }
+        fun connection(connectionManager: ConnectionManager) = apply { this.connectionManager = connectionManager }
+        fun catalogRefresh(catalogRefresh: Long) = apply { this.catalogRefresh = catalogRefresh }
+        fun nanomsgPullIntervalMs(nanomsgPullIntervalMs: Long) = apply { this.nanomsgPullIntervalMs = nanomsgPullIntervalMs }
+        fun build(): HyenaApi {
+            if (this.connectionManager == null && this.address == null) {
+                throw IllegalStateException("address or connection manager has to be specified in order to build HyenaApi")
+            }
+            this.connectionManager = if (this.connectionManager != null) this.connectionManager else ConnectionManager(address!!, nanomsgPullIntervalMs)
+            return HyenaApi(this)
+        }
+    }
 
     private val catalogCache: LoadingCache<Int, Catalog> = CacheBuilder.newBuilder()
             .maximumSize(1)
@@ -98,7 +116,8 @@ open class HyenaApi internal constructor(private val connection: ConnectionManag
         val message = MessageBuilder.buildScanMessage(req)
         return makeApiCall(message, ScanReply::class.java) { reply ->
             when (reply.result) {
-                is Left -> reply.result.value
+                is Left ->
+                    reply.result.value
                 is Right -> {
                     throw ReplyException(reply.result.value)
                 }
@@ -111,14 +130,14 @@ open class HyenaApi internal constructor(private val connection: ConnectionManag
 
     @Throws(IOException::class, ReplyException::class)
     fun refreshCatalog(force: Boolean = false): Catalog =
-        try {
-            if (force) {
-                catalogCache.invalidate(DUMMY_CACHE_KEY)
+            try {
+                if (force) {
+                    catalogCache.invalidate(DUMMY_CACHE_KEY)
+                }
+                catalogCache[DUMMY_CACHE_KEY]
+            } catch (e: ExecutionException) {
+                throw e.cause ?: ReplyException("Unknown exception")
             }
-            catalogCache[DUMMY_CACHE_KEY]
-        } catch (e: ExecutionException) {
-            throw e.cause ?: ReplyException("Unknown exception")
-        }
 
     /**
      * Cleans all resources attached to connection.
@@ -131,13 +150,13 @@ open class HyenaApi internal constructor(private val connection: ConnectionManag
         private val log = Logger.get(HyenaApi::class.java)
 
         val UTF8_CHARSET: Charset = Charset.forName("UTF-8")
-        private const val CATALOG_CACHE_TIMEOUT_MS: Long = 5*60*1000 // 5 minutes
-        private const val DUMMY_CACHE_KEY:Int = 0x0BCABABA
+        private const val CATALOG_CACHE_TIMEOUT_MS: Long = 5 * 60 * 1000 // 5 minutes
+        private const val NANOMSG_PULL_INTERVAL_MS: Long = 50
+        private const val DUMMY_CACHE_KEY: Int = 0x0BCABABA
     }
 }
 
 private const val RECEIVE_START_DELAY_MS: Long = 500L       //500ms
-private const val RECEIVE_INTERVAL_MS: Long = 200L          //200ms
 private const val KEEP_ALIVE_START_DELAY_MS: Long = 0L
 private const val KEEP_ALIVE_INTERVAL_MS: Long = 10 * 1000L //10s
 
@@ -150,18 +169,21 @@ open class ConnectionManager {
     private val receiveScheduler = Timer()
     private val keepAliveScheduler = Timer()
 
-    internal constructor(hyenaAddress: String, connectionManager: PeerConnectionManager) {
+    internal constructor(hyenaAddress: String, connectionManager: PeerConnectionManager, receiveIntervalMs: Long) {
         this.hyenaAddress = hyenaAddress
         this.connectionManager = connectionManager
         this.connection = connectionManager.getPeerConnection()
         scheduleKeepAliveThread()
-        scheduleDataReceiverThread()
+        scheduleDataReceiverThread(receiveIntervalMs)
     }
 
-    private fun scheduleDataReceiverThread() {
+    constructor(hyenaAddress: String, receiveIntervalMs: Long) : this(hyenaAddress, PeerConnectionManager(hyenaAddress), receiveIntervalMs)
+
+    private fun scheduleDataReceiverThread(receiveIntervalMs: Long) {
+        log.info("Scheduling receiving messages for ${this.connection.socketAddress} with $receiveIntervalMs ms interval")
         receiveScheduler.schedule(
                 RECEIVE_START_DELAY_MS,
-                RECEIVE_INTERVAL_MS,
+                receiveIntervalMs,
                 {
                     try {
                         receiveData()
@@ -193,8 +215,6 @@ open class ConnectionManager {
         connection = connectionManager.getPeerConnection()
     }
 
-    constructor(hyenaAddress: String) : this(hyenaAddress, PeerConnectionManager(hyenaAddress))
-
     private fun retrySend(body: () -> Unit) {
         var retrySend = true
         while (retrySend) {
@@ -203,7 +223,7 @@ open class ConnectionManager {
                 retrySend = false
             } catch (e: nanomsg.exceptions.IOException) {
                 if (e.errno == SEND_TIMEOUT_ERRNO) {
-                    log.warn("Send timeout. Reconnecting")
+                    log.warn("Received timeout. Reconnecting")
                     reconnect()
                     retrySend = true
                 } else {

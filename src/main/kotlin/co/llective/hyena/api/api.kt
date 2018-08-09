@@ -174,13 +174,20 @@ data class ScanRequest(var minTs: Long = 0,
                        var maxTs: Long = 0,
                        var partitionIds: Set<UUID> = hashSetOf(),
                        var filters: ScanOrFilters = ScanOrFilters(),
-                       var projection: List<Long> = arrayListOf())
+                       var projection: List<Long> = arrayListOf(),
+                       var scanConfig: Optional<StreamConfig> = Optional.empty())
+
+data class StreamConfig(var limit: Long,
+                        var threshold: Long,
+                        var streamState: Optional<StreamState> = Optional.empty())
+
+data class StreamState(var skipChunks: Long)
 
 data class ScanFilter(
         val column: Long,
-        val op: ScanComparison = ScanComparison.Eq,
+        var op: ScanComparison = ScanComparison.Eq,
         val type: FilterType,
-        val value: Any
+        var value: Any
 ) {
     override fun toString(): String = "$column ${op.name} $value"
 
@@ -228,7 +235,7 @@ class ScanOrFilters : ArrayList<ScanAndFilters> {
     }
 }
 
-data class ScanResult(val columnMap: MutableMap<Long, ColumnValues>)
+data class ScanResult(val columnMap: MutableMap<Long, ColumnValues>, val streamState: Optional<StreamState> = Optional.empty())
 
 open class Column(val dataType: BlockType, var id: Long = -1, val name: String) {
     override fun toString(): String = "$name/$id ${dataType.name}"

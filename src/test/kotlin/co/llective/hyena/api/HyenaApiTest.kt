@@ -23,7 +23,7 @@ object HyenaApiTest : Spek({
                 on { sendRequest(any()) } doReturn mockedFuture
             }
 
-            val sut = HyenaApi(connectionManager)
+            val sut = HyenaApi.Builder().connection(connectionManager).build()
 
             assert.that({ sut.listColumns() }, throws<ReplyException>())
         }
@@ -37,7 +37,7 @@ object HyenaApiTest : Spek({
                 on { sendRequest(any()) } doReturn mockedFuture
             }
 
-            val sut = HyenaApi(connectionManager)
+            val sut = HyenaApi.Builder().connection(connectionManager).build()
 
             val reply = sut.listColumns()
             assert.that(list, sameInstance(reply))
@@ -52,7 +52,7 @@ object HyenaApiTest : Spek({
             val connectionManager = mock<ConnectionManager> {
                 on { sendRequest(any()) } doReturn mockedFuture
             }
-            val sut = HyenaApi(connectionManager)
+            val sut = HyenaApi.Builder().connection(connectionManager).build()
 
             val column = Column(BlockType.I32Dense, 100, "testColumn")
             assert.that({ sut.addColumn(column) }, throws<ReplyException>())
@@ -66,7 +66,7 @@ object HyenaApiTest : Spek({
                 on { sendRequest(any()) } doReturn mockedFuture
             }
 
-            val sut = HyenaApi(connectionManager)
+            val sut = HyenaApi.Builder().connection(connectionManager).build()
 
             val column = Column(BlockType.I32Dense, 100, "testColumn")
             val result = sut.addColumn(column)
@@ -81,7 +81,7 @@ object HyenaApiTest : Spek({
             val connectionManager = mock<ConnectionManager> {
                 on { sendRequest(any()) } doReturn mockedFuture
             }
-            val sut = HyenaApi(connectionManager)
+            val sut = HyenaApi.Builder().connection(connectionManager).build()
 
             val column = Column(BlockType.I32Dense, 100, "testColumn")
             val result = sut.addColumn(column)
@@ -97,7 +97,7 @@ object HyenaApiTest : Spek({
             val connectionManager = mock<ConnectionManager> {
                 on { sendRequest(any()) } doReturn mockedFuture
             }
-            val sut = HyenaApi(connectionManager)
+            val sut = HyenaApi.Builder().connection(connectionManager).build()
 
             val data = ColumnData(100, DenseBlock<Int>(BlockType.I32Dense, 10))
             assert.that({ sut.insert(10, listOf(), listOf(data)) }, throws<ReplyException>())
@@ -110,7 +110,7 @@ object HyenaApiTest : Spek({
             val connectionManager = mock<ConnectionManager> {
                 on { sendRequest(any()) } doReturn mockedFuture
             }
-            val sut = HyenaApi(connectionManager)
+            val sut = HyenaApi.Builder().connection(connectionManager).build()
 
             val data = ColumnData(100, DenseBlock<Int>(BlockType.I32Dense, 10))
             val reply = sut.insert(10, listOf(), listOf(data))
@@ -125,7 +125,7 @@ object HyenaApiTest : Spek({
             val connectionManager = mock<ConnectionManager> {
                 on { sendRequest(any()) } doReturn mockedFuture
             }
-            val sut = HyenaApi(connectionManager)
+            val sut = HyenaApi.Builder().connection(connectionManager).build()
 
             val data = ColumnData(100, DenseBlock<Int>(BlockType.I32Dense, 10))
             val reply = sut.insert(10, listOf(), listOf(data))
@@ -141,7 +141,7 @@ object HyenaApiTest : Spek({
             val connectionManager = mock<ConnectionManager> {
                 on { sendRequest(any()) } doReturn mockedFuture
             }
-            val sut = HyenaApi(connectionManager)
+            val sut = HyenaApi.Builder().connection(connectionManager).build()
 
             assert.that({ sut.refreshCatalog() }, throws<ReplyException>())
         }
@@ -157,7 +157,7 @@ object HyenaApiTest : Spek({
             val connectionManager = mock<ConnectionManager> {
                 on { sendRequest(any()) } doReturn mockedFuture
             }
-            val sut = HyenaApi(connectionManager)
+            val sut = HyenaApi.Builder().connection(connectionManager).build()
 
             val reply = sut.refreshCatalog()
             assert.that(0, equalTo(reply.columns.size))
@@ -165,11 +165,11 @@ object HyenaApiTest : Spek({
         }
 
         it("Refresh can be forced") {
-            val catalog1 = mock<Catalog>(){
+            val catalog1 = mock<Catalog>() {
                 on { columns } doReturn emptyList<Column>()
                 on { availablePartitions } doReturn emptyList<PartitionInfo>()
             }
-            val catalog2 = mock<Catalog>(){
+            val catalog2 = mock<Catalog>() {
                 on { columns } doReturn listOf<Column>(mock<Column>())
                 on { availablePartitions } doReturn emptyList<PartitionInfo>()
             }
@@ -187,7 +187,7 @@ object HyenaApiTest : Spek({
             val connectionManager = mock<ConnectionManager> {
                 on { sendRequest(any()) } doReturn mockedFuture
             }
-            val sut = HyenaApi(connectionManager)
+            val sut = HyenaApi.Builder().connection(connectionManager).build()
 
             var reply = sut.refreshCatalog()
             assert.that(0, equalTo(reply.columns.size))
@@ -208,7 +208,7 @@ object HyenaApiTest : Spek({
             val connectionManager = mock<ConnectionManager> {
                 on { sendRequest(any()) } doReturn mockedFuture
             }
-            val sut = HyenaApi(connectionManager)
+            val sut = HyenaApi.Builder().connection(connectionManager).build()
 
             val partitionIds = HashSet<UUID>()
             partitionIds.add(UUID.randomUUID())
@@ -225,7 +225,7 @@ object HyenaApiTest : Spek({
             val connectionManager = mock<ConnectionManager> {
                 on { sendRequest(any()) } doReturn mockedFuture
             }
-            val sut = HyenaApi(connectionManager)
+            val sut = HyenaApi.Builder().connection(connectionManager).build()
 
             val partitionIds = HashSet<UUID>()
             partitionIds.add(UUID.randomUUID())
@@ -250,7 +250,7 @@ object ConnectionManagerTest : Spek({
             val mockedManager = mock<PeerConnectionManager> {
                 on { getPeerConnection() } doReturn mockedConnection
             }
-            val connectionManager = ConnectionManager(hyenaAddress, mockedManager)
+            val connectionManager = ConnectionManager(hyenaAddress, mockedManager, 100)
 
             connectionManager.keepAlive()
             verify(mockedConnection, atLeast(1)).synchronizedReq(serializedKeepAliveReq)
@@ -269,7 +269,7 @@ object ConnectionManagerTest : Spek({
             val mockedManager = mock<PeerConnectionManager> {
                 on { getPeerConnection() } doReturn mockedConnection
             }
-            val connectionManager = ConnectionManager(hyenaAddress, mockedManager)
+            val connectionManager = ConnectionManager(hyenaAddress, mockedManager, 100)
             connectionManager.keepAliveResponse.set(false)
 
             connectionManager.keepAlive()
